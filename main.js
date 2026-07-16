@@ -1,5 +1,4 @@
-import { db, login } from "./firebase.js";
-
+import { db, auth, login } from "./firebase.js";
 import {
     collection,
     onSnapshot,
@@ -35,7 +34,7 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
         await updateDoc(doc(db, "rooms", roomDoc.id), {
 
-            player2: crypto.randomUUID(),
+            player2: auth.currentUser.uid,
 
             state: "playing"
 
@@ -58,8 +57,7 @@ createButton.onclick = async ()=>{
 
         name: "Room " + Math.floor(Math.random()*10000),
 
-        host: crypto.randomUUID(),
-
+        host: auth.currentUser.uid,
         player2: null,
 
         state: "waiting",
