@@ -1,4 +1,5 @@
 import { db, auth, login } from "./firebase.js";
+import { startGame } from "./game.js";
 import {
     collection,
     onSnapshot,
