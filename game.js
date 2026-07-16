@@ -54,25 +54,78 @@ export function startGame(id){
     });
 }
 
+/* ---- new game on restart ---- */ 
+function newGameState(){
+    const now = Date.now();
+
+    return {
+        phase: "selection",
+        turn: 1,
+
+        selectionStartAt: now,
+        matchStartAt: now,
+
+        battle: null,
+        winner: null,
+
+        rematch: {
+            player1: false,
+            player2: false
+        },
+
+        player1: {
+            gold: 10,
+            hand: getRandomUnitCards(3),
+            selectedIndex: null,
+            selectedLane: null
+        },
+
+        player2: {
+            gold: 10,
+            hand: getRandomUnitCards(3),
+            selectedIndex: null,
+            selectedLane: null
+        },
+
+        battlefield: {
+            lane1: [],
+            lane2: [],
+            lane3: []
+        },
+
+        towers: {
+            player1: {
+                left: 1000,
+                middle: 1000,
+                right: 1000,
+                king: 3000
+            },
+
+            player2: {
+                left: 1000,
+                middle: 1000,
+                right: 1000,
+                king: 3000
+            }
+        }
+    };
+}
+
+
 /* ---------------- GAME CREATION ---------------- */
 async function createGame(){
     await runTransaction(db, async (tx) => {
         const snap = await tx.get(ref());
-        if(snap.data().game) return;
-        const now = Date.now();
-        tx.update(ref(), { game: {
-            phase:"selection", turn:1,
-            selectionStartAt: now, matchStartAt: now,
-            battle: null,
-            player1: { gold:10, hand:getRandomUnitCards(3), selectedIndex:null, selectedLane:null },
-            player2: { gold:10, hand:getRandomUnitCards(3), selectedIndex:null, selectedLane:null },
-            battlefield: { lane1:[], lane2:[], lane3:[] },
-            towers: {
-                player1:{ left:1000, middle:1000, right:1000, king:3000 },
-                player2:{ left:1000, middle:1000, right:1000, king:3000 }
-            }
-        }});
+        const room = snap.data();
+
+        if(room.game)
+            return;
+
+        tx.update(ref(), {
+            game: newGameState()
+        });
     });
+
     console.log("Game created");
 }
 
@@ -99,14 +152,50 @@ function render(room){
     }
 
     if(g.phase === "ended"){
-        stopReplay();
-        setTrayLocked(true);
-        renderBoard(g.towers, flatten(g.battlefield, "idle"), me);
-        drawHand(room, me, ()=>{});
-        setPhaseTag("Match over", "over");
-        showResult(g.winner === me);
-        return;
+    stopReplay();
+    setTrayLocked(true);
+
+    renderBoard(
+        g.towers,
+        flatten(g.battlefield, "idle"),
+        me
+    );
+
+    drawHand(room, me, ()=>{});
+    setPhaseTag("Match over", "over");
+
+    const opponent =
+        me === "player1" ? "player2" : "player1";
+
+    let outcome = "lose";
+
+    if(g.winner === "draw")
+        outcome = "draw";
+    else if(g.winner === me)
+        outcome = "win";
+
+    const rematch = g.rematch || {
+        player1: false,
+        player2: false
+    };
+
+    showResult(
+        outcome,
+        rematch[me] === true,
+        rematch[opponent] === true,
+        requestRematch
+    );
+
+    if(
+        isHost() &&
+        rematch.player1 === true &&
+        rematch.player2 === true
+    ){
+        restartMatch();
     }
+
+    return;
+}
     hideResult();
 
     if(g.phase === "battle"){
@@ -234,6 +323,46 @@ async function finalizePhase(){
         });
     }
 }
+
+async function requestRematch(){
+    if(!latestRoom || !latestRoom.game)
+        return;
+
+    if(latestRoom.game.phase !== "ended")
+        return;
+
+    await updateDoc(ref(), {
+        [`game.rematch.${self()}`]: true
+    });
+}
+
+
+async function restartMatch(){
+    await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref());
+        const room = snap.data();
+
+        if(!room || !room.game)
+            return;
+
+        const rematch = room.game.rematch || {};
+
+        if(room.game.phase !== "ended")
+            return;
+
+        if(
+            rematch.player1 !== true ||
+            rematch.player2 !== true
+        ){
+            return;
+        }
+
+        tx.update(ref(), {
+            game: newGameState()
+        });
+    });
+}
+
 
 /* ---------------- LOCAL COUNTDOWN ---------------- */
 setInterval(() => {
