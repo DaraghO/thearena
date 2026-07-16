@@ -4,7 +4,8 @@ import { getRandomCards } from "./cards.js";
 import {
     doc,
     onSnapshot,
-    updateDoc
+    updateDoc,
+    runTransaction
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
@@ -55,85 +56,101 @@ export function startGame(roomId)
 
 async function createGame(roomRef)
 {
-    await updateDoc(roomRef, {
+    await runTransaction(db, async (transaction)=>{
 
-        game: {
+        const snapshot = await transaction.get(roomRef);
 
-            phase: "selection",
+        const room = snapshot.data();
 
-            turn: 1,
-
-            timeRemaining: 5,
-
-
-            player1: {
-
-                gold: 10,
-
-                hand: getRandomCards(3),
-
-                selectedCard: null,
-
-                selectedLane: null
-
-            },
+        // Someone else already created the game
+        if(room.game)
+        {
+            return;
+        }
 
 
-            player2: {
+        transaction.update(roomRef, {
 
-                gold: 10,
+            game: {
 
-                hand: getRandomCards(3),
+                phase: "selection",
 
-                selectedCard: null,
+                turn: 1,
 
-                selectedLane: null
+                timeRemaining: 5,
 
-            },
-
-
-            battlefield: {
-
-                lane1: [],
-
-                lane2: [],
-
-                lane3: []
-
-            },
-
-
-            towers: {
 
                 player1: {
 
-                    left: 1000,
+                    gold: 10,
 
-                    middle: 1000,
+                    hand: getRandomCards(3),
 
-                    right: 1000,
+                    selectedCard: null,
 
-                    king: 3000
+                    selectedLane: null
 
                 },
 
+
                 player2: {
 
-                    left: 1000,
+                    gold: 10,
 
-                    middle: 1000,
+                    hand: getRandomCards(3),
 
-                    right: 1000,
+                    selectedCard: null,
 
-                    king: 3000
+                    selectedLane: null
+
+                },
+
+
+                battlefield: {
+
+                    lane1: [],
+
+                    lane2: [],
+
+                    lane3: []
+
+                },
+
+
+                towers: {
+
+                    player1: {
+
+                        left: 1000,
+
+                        middle: 1000,
+
+                        right: 1000,
+
+                        king: 3000
+
+                    },
+
+                    player2: {
+
+                        left: 1000,
+
+                        middle: 1000,
+
+                        right: 1000,
+
+                        king: 3000
+
+                    }
 
                 }
 
             }
 
-        }
+        });
 
     });
+
 
     console.log("Game created");
 }
