@@ -32,15 +32,20 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
     button.onclick = async () => {
 
-        await updateDoc(doc(db, "rooms", roomDoc.id), {
+    await updateDoc(doc(db, "rooms", roomDoc.id), {
 
-            player2: auth.currentUser.uid,
+        player2: auth.currentUser.uid,
 
-            state: "playing"
+        state: "playing"
 
-        });
+    });
 
-    };
+    currentRoomId = roomDoc.id;
+
+    document.getElementById("status").innerText =
+        "Joined room: " + roomDoc.id;
+
+};
 
     roomsDiv.appendChild(button);
 
@@ -69,6 +74,7 @@ createButton.onclick = async ()=>{
 
 currentRoomId = roomRef.id;
 
-alert("Created room: " + roomRef.id);
+document.getElementById("status").innerText =
+    "You created room: " + roomRef.id;
 
 };
