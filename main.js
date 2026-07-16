@@ -1,3 +1,5 @@
+console.log("main.js loaded");
+
 import { db, auth, login } from "./firebase.js";
 import { startGame } from "./game.js";
 import {
