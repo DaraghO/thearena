@@ -300,29 +300,86 @@ export function drawTopbar(game, self){
     if(matchInfo)
         matchInfo.textContent = "Turn " + game.turn;
 }
+function showNotEnoughGold(cardElement){
+    const goldChip = document.getElementById("playerGoldChip");
+    const warning = document.getElementById("goldWarning");
 
+    cardElement.classList.remove("no-gold");
+
+    if(goldChip)
+        goldChip.classList.remove("no-gold");
+
+    if(warning)
+        warning.classList.remove("show");
+
+    // Force the browser to restart each animation.
+    void cardElement.offsetWidth;
+
+    if(goldChip)
+        void goldChip.offsetWidth;
+
+    if(warning)
+        void warning.offsetWidth;
+
+    cardElement.classList.add("no-gold");
+
+    if(goldChip)
+        goldChip.classList.add("no-gold");
+
+    if(warning)
+        warning.classList.add("show");
+}
 export function drawHand(room, self, onSelect){
-    const g = room.game;
+    const game = room.game;
     const wrap = document.getElementById("cards");
-    if(!wrap) return;
-    const hand = g[self].hand || [];
-    const chosen = g[self].selectedIndex;
+
+    if(!wrap)
+        return;
+
+    const player = game[self];
+    const hand = player.hand || [];
+    const chosen = player.selectedIndex;
+    const availableGold = player.gold;
+
     wrap.innerHTML = "";
-    hand.forEach((card, i) => {
-        const el = document.createElement("button");
-        el.className =
-    "game-card rarity-" + card.rarity +
-    (chosen === i ? " selected" : "");
-        el.innerHTML = `
-            <span class="cost"><span class="coin"></span>${card.cost}</span>
+
+    hand.forEach((card, index) => {
+        const cannotAfford = card.cost > availableGold;
+
+        const element = document.createElement("button");
+
+        element.className =
+            `game-card rarity-${card.rarity}` +
+            (chosen === index ? " selected" : "") +
+            (cannotAfford ? " unaffordable" : "");
+
+        element.innerHTML = `
+            <span class="cost">
+                <span class="coin"></span>
+                ${card.cost}
+            </span>
+
             <span class="rarity ${card.rarity}"></span>
-            <svg class="portrait" viewBox="0 0 100 120">${rigMarkup(card.id,"you","pose")}</svg>
-            <span class="cname">${card.name}</span>`;
-        el.onclick = () => onSelect(i);
-        wrap.appendChild(el);
+
+            <svg class="portrait" viewBox="0 0 100 120">
+                ${rigMarkup(card.id, "you", "pose")}
+            </svg>
+
+            <span class="cname">${card.name}</span>
+        `;
+
+        element.onclick = () => {
+            if(card.cost > game[self].gold){
+                showNotEnoughGold(element);
+                return;
+            }
+
+            onSelect(index);
+        };
+
+        wrap.appendChild(element);
     });
 }
-
 export function setSelectedLane(lane){
     document.querySelectorAll(".lane-select").forEach(el => {
         el.classList.toggle("selected", el.dataset.lane === lane);
