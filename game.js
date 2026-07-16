@@ -252,7 +252,6 @@ function startReplay(battle, me){
         const tt = Math.max(0, Math.min(1, fpos - idx));
 
         drawBattleFrame(frames[idx], frames[nidx], tt, me);
-        setPhaseTime(Math.max(0, Math.ceil(dur - elapsed)));
 
         if(elapsed < dur){
             replayRaf = requestAnimationFrame(step);
@@ -378,41 +377,64 @@ async function restartMatch(){
 }
 
 
-/* ---------------- LOCAL COUNTDOWN ---------------- */
+/* ---------------- LOCAL COUNTDOWNS ---------------- */
 setInterval(() => {
-
     if(!latestRoom || !latestRoom.game)
         return;
 
     const g = latestRoom.game;
+    const now = Date.now();
 
-    const matchStart =
-    g.matchStartAt ||
-    g.selectionStartAt;
+    // Full three-minute match clock
+    const matchStart = g.matchStartAt || g.selectionStartAt;
 
-if(matchStart)
-{
-    const matchElapsed =
-        (Date.now() - matchStart) / 1000;
+    if(matchStart){
+        const matchRemaining =
+            180 - ((now - matchStart) / 1000);
 
-    setMatchTime(180 - matchElapsed);
-}
-
-    const matchRemaining = 180 - matchElapsed;
-
-    setMatchTime(matchRemaining);
-
-
-    if(g.phase === "selection")
-    {
-        const phaseRemaining =
-            SELECTION_SECONDS -
-            (Date.now() - (g.selectionStartAt || Date.now())) / 1000;
-
-        setPhaseTime(Math.max(0, Math.ceil(phaseRemaining)));
+        setMatchTime(matchRemaining);
     }
 
-}, 250);
+    // Five-second rest/selection countdown
+    if(g.phase === "selection"){
+        const selectionStart =
+            g.selectionStartAt || now;
+
+        const phaseRemaining =
+            SELECTION_SECONDS -
+            ((now - selectionStart) / 1000);
+
+        setPhaseTime(
+            Math.max(0, Math.ceil(phaseRemaining))
+        );
+
+        return;
+    }
+
+    // Ten-second battle countdown
+    if(g.phase === "battle" && g.battle){
+        const battleStart =
+            g.battle.startAt || now;
+
+        const battleDuration =
+            g.battle.duration || BATTLE_SECONDS;
+
+        const phaseRemaining =
+            battleDuration -
+            ((now - battleStart) / 1000);
+
+        setPhaseTime(
+            Math.max(0, Math.ceil(phaseRemaining))
+        );
+
+        return;
+    }
+
+    if(g.phase === "ended"){
+        setPhaseTime(0);
+    }
+
+}, 100);
 
 /* ---------------- INPUT ---------------- */
 async function writeSelection(field, value){
