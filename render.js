@@ -325,11 +325,48 @@ export function showBanner(text, kind){
     el._t = setTimeout(() => { el.className = "hidden"; }, 1700);
 }
 
-export function showResult(youWon){
+export function showResult(outcome, youReady, opponentReady, onRematch){
     const el = document.getElementById("result");
     if(!el) return;
-    el.querySelector(".result-text").textContent = youWon ? "Victory" : "Defeat";
-    el.classList.toggle("win", youWon);
+
+    const text = el.querySelector(".result-text");
+    const sub = document.getElementById("resultSub");
+    const button = document.getElementById("rematchBtn");
+    const status = document.getElementById("rematchStatus");
+
+    if(outcome === "win"){
+        text.textContent = "Victory";
+        el.classList.add("win");
+    }
+    else if(outcome === "draw"){
+        text.textContent = "Draw";
+        el.classList.remove("win");
+    }
+    else{
+        text.textContent = "Defeat";
+        el.classList.remove("win");
+    }
+
+    if(sub)
+        sub.textContent = "Battle complete";
+
+    if(button){
+        button.disabled = youReady;
+        button.textContent = youReady ? "Ready" : "Play Again";
+        button.onclick = youReady ? null : onRematch;
+    }
+
+    if(status){
+        if(youReady && opponentReady)
+            status.textContent = "Starting rematch...";
+        else if(youReady)
+            status.textContent = "Waiting for opponent...";
+        else if(opponentReady)
+            status.textContent = "Opponent wants a rematch";
+        else
+            status.textContent = "";
+    }
+
     el.classList.remove("hidden");
 }
 export function hideResult(){
