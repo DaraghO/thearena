@@ -3,55 +3,23 @@
 <head>
     <title>The Arena</title>
 </head>
+
 <body>
 
-<h1>Firebase Test</h1>
+<h1>The Arena</h1>
 
-<script type="module">
+<button id="createRoom">
+    Create Room
+</button>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+<h2>Available Rooms</h2>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyByksL_uNMUTngkzFA3kpOpIE2a2RirPC0",
-  authDomain: "turnbackend.firebaseapp.com",
-  projectId: "turnbackend",
-  storageBucket: "turnbackend.firebasestorage.app",
-  messagingSenderId: "1043001598269",
-  appId: "1:1043001598269:web:f4c709ac9ab5cc5c776554",
-  measurementId: "G-CF1SMHNB7C"
-};
+<div id="rooms">
+    Loading...
+</div>
 
-const app = initializeApp(firebaseConfig);
 
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-try
-{
-    await signInAnonymously(auth);
-
-    console.log("Logged in!");
-    console.log(auth.currentUser.uid);
-
-    document.body.innerHTML += `<p>${auth.currentUser.uid}</p>`;
-
-    await setDoc(doc(db, "test", auth.currentUser.uid), {
-        name: "Dara",
-        created: new Date().toISOString()
-    });
-
-    console.log("Document written!");
-    document.body.innerHTML += `<p>Firestore write successful!</p>`;
-}
-catch(err)
-{
-    console.error(err);
-    document.body.innerHTML += `<pre>${err}</pre>`;
-}
-
-</script>
+<script type="module" src="main.js"></script>
 
 </body>
 </html>
