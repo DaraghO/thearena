@@ -25,53 +25,42 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
     snapshot.forEach((roomDoc)=>{
 
-    let room = roomDoc.data();
+        let room = roomDoc.data();
 
-    if(room.host === auth.currentUser.uid)
-    {
-        return;
-    }
-    snapshot.forEach((roomDoc)=>{
+        if(room.host === auth.currentUser.uid)
+        {
+            return;
+        }
 
-    let room = roomDoc.data();
+        if(room.player2 !== null)
+        {
+            return;
+        }
 
-    if(room.host === auth.currentUser.uid)
-    {
-        return;
-    }
+        let button = document.createElement("button");
 
-    if(room.player2 !== null)
-    {
-        return;
-    }
+        button.innerText = "Join " + room.name;
 
-    let button = document.createElement("button");
+        button.onclick = async () => {
 
-    button.innerText = "Join " + room.name;
-    let button = document.createElement("button");
+            await updateDoc(doc(db, "rooms", roomDoc.id), {
 
-    button.innerText = "Join " + room.name;
+                player2: auth.currentUser.uid,
 
-    button.onclick = async () => {
+                state: "playing"
 
-    await updateDoc(doc(db, "rooms", roomDoc.id), {
+            });
 
-        player2: auth.currentUser.uid,
+            currentRoomId = roomDoc.id;
 
-        state: "playing"
+            document.getElementById("status").innerText =
+                "Joined room: " + room.name;
+
+        };
+
+        roomsDiv.appendChild(button);
 
     });
-
-    currentRoomId = roomDoc.id;
-
-    document.getElementById("status").innerText =
-    "Joined room: " + room.name;
-
-};
-
-    roomsDiv.appendChild(button);
-
-});
 
 });
 
