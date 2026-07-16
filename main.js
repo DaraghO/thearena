@@ -14,7 +14,7 @@ await login();
 
 const roomsDiv = document.getElementById("rooms");
 const createButton = document.getElementById("createRoom");
-
+let currentRoomId = null;
 
 // Listen for rooms
 
@@ -53,17 +53,22 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
 createButton.onclick = async ()=>{
 
-    await addDoc(collection(db, "rooms"), {
+    const roomRef = await addDoc(collection(db, "rooms"), {
 
-        name: "Room " + Math.floor(Math.random()*10000),
+    name: "Room " + Math.floor(Math.random()*10000),
 
-        host: auth.currentUser.uid,
-        player2: null,
+    host: auth.currentUser.uid,
 
-        state: "waiting",
+    player2: null,
 
-        created: serverTimestamp()
+    state: "waiting",
 
-    });
+    created: serverTimestamp()
+
+});
+
+currentRoomId = roomRef.id;
+
+alert("Created room: " + roomRef.id);
 
 };
