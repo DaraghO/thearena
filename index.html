@@ -118,7 +118,34 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 }
 .board-wrap{ flex:1; padding:6px 8px 2px; min-height:0; }
 #board{ width:100%; height:100%; display:block; }
+/* -- new lane stuff -- */
+ .lane-select{
+    fill:rgba(24,179,196,0);
+    stroke:transparent;
+    stroke-width:4;
+    cursor:pointer;
+    transition:
+        fill .15s ease,
+        stroke .15s ease,
+        filter .15s ease;
+}
 
+.lane-select:hover{
+    fill:rgba(24,179,196,.10);
+}
+
+.lane-select.selected{
+    fill:rgba(24,179,196,.20);
+    stroke:var(--you);
+    filter:drop-shadow(0 0 6px rgba(24,179,196,.65));
+}
+
+.tray.locked + * .lane-select,
+.arena:has(.tray.locked) .lane-select{
+    pointer-events:none;
+}   
+
+    
 /* rig visuals + states, shared by board troops and card portraits */
 .rig .shadow{ fill:rgba(20,15,8,.28); }
 .rig .torso{ fill:var(--team); stroke:var(--ink); stroke-width:2.5; }
@@ -308,11 +335,29 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     text-shadow:0 1px 2px #000;
 }
 
-.lanes-row{ display:flex; gap:10px; }
-.lane-btn{ flex:1; background:#232838; border:1.5px solid #333b50; border-radius:12px; color:var(--text); padding:12px 0; font-weight:700; font-size:13px; }
-.lane-btn.selected{ border-color:var(--you); color:var(--you-light); background:rgba(24,179,196,.12); }
-.skip-btn{ flex:none; background:transparent; border:1.5px solid #444; border-radius:12px; color:var(--muted); padding:12px 16px; font-weight:700; font-size:13px; }
+.lanes-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
 
+.lane-hint{
+    flex:1;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.2;
+}
+
+.skip-btn{
+    flex:none;
+    background:transparent;
+    border:1.5px solid #444;
+    border-radius:12px;
+    color:var(--muted);
+    padding:12px 16px;
+    font-weight:700;
+    font-size:13px;
+}
 @media (prefers-reduced-motion: reduce){ *{ animation:none !important; } }
 
 /* phase clarity */
@@ -327,8 +372,7 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 @keyframes ringPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.15); } }
 
 .tray.locked .game-card,
-.tray.locked .lane-btn,
-.tray.locked .skip-btn{ opacity:.4; pointer-events:none; filter:grayscale(.5); }
+.tray.locked .skip-btn{opacity:.4; pointer-events:none; filter:grayscale(.5); }
 
 #phaseBanner{ position:fixed; inset:0; z-index:15; display:flex; align-items:center; justify-content:center; pointer-events:none; }
 #phaseBanner span{ font-family:var(--font-display); font-weight:700; font-size:52px; letter-spacing:1px; padding:14px 32px; border-radius:16px; opacity:0; transform:scale(.7); }
@@ -407,11 +451,9 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
             <div id="cards" class="cards"></div>
 
             <div class="lanes-row">
-                <button class="lane-btn" data-lane="lane1">Lane 1</button>
-                <button class="lane-btn" data-lane="lane2">Lane 2</button>
-                <button class="lane-btn" data-lane="lane3">Lane 3</button>
-                <button id="skipBtn" class="skip-btn">Skip</button>
-            </div>
+    <span class="lane-hint">Choose a card, then tap a lane</span>
+    <button id="skipBtn" class="skip-btn">Skip</button>
+</div>
         </div>
     </section>
 
