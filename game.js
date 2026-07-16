@@ -1,9 +1,8 @@
-import { db, auth } from "./firebase.js";
+import { db } from "./firebase.js";
 
 import {
     doc,
-    onSnapshot,
-    updateDoc
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
@@ -11,17 +10,25 @@ export function startGame(roomId)
 {
     const roomRef = doc(db, "rooms", roomId);
 
-    onSnapshot(roomRef, async (snapshot)=>{
+    onSnapshot(roomRef, (snapshot)=>{
 
-        if(!snapshot.exists())
+        let room = snapshot.data();
+
+        if(!room)
             return;
 
-        const room = snapshot.data();
+        if(room.state === "playing")
+        {
+            document.getElementById("rooms").style.display = "none";
+            document.getElementById("createRoom").style.display = "none";
+            document.getElementById("roomName").style.display = "none";
 
-        if(room.state !== "playing")
-            return;
+            document.getElementById("game").style.display = "block";
 
-        console.log("Game running", room);
+            document.getElementById("players").innerText =
+                "Player 1: " + room.host +
+                "\nPlayer 2: " + room.player2;
+        }
 
     });
 }
