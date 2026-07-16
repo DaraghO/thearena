@@ -5,6 +5,7 @@ import {
     addDoc,
     updateDoc,
     doc,
+    getDocs,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -26,6 +27,27 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
     let room = roomDoc.data();
 
+    if(room.host === auth.currentUser.uid)
+    {
+        return;
+    }
+    snapshot.forEach((roomDoc)=>{
+
+    let room = roomDoc.data();
+
+    if(room.host === auth.currentUser.uid)
+    {
+        return;
+    }
+
+    if(room.player2 !== null)
+    {
+        return;
+    }
+
+    let button = document.createElement("button");
+
+    button.innerText = "Join " + room.name;
     let button = document.createElement("button");
 
     button.innerText = "Join " + room.name;
@@ -57,11 +79,36 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 // Create room
 
 createButton.onclick = async ()=>{
+const roomName = document.getElementById("roomName").value.trim();
 
+if(roomName === "")
+{
+    alert("Please enter a room name.");
+    return;
+}
+
+
+const roomsSnapshot = await getDocs(collection(db, "rooms"));
+
+let exists = false;
+
+roomsSnapshot.forEach((roomDoc)=>{
+    if(roomDoc.data().name.toLowerCase() === roomName.toLowerCase())
+    {
+        exists = true;
+    }
+});
+
+
+if(exists)
+{
+    alert("A room with that name already exists.");
+    return;
+}
     const roomRef = await addDoc(collection(db, "rooms"), {
 
-    name: document.getElementById("roomName").value || "Unnamed Room",
-    host: auth.currentUser.uid,
+name: roomName,
+        host: auth.currentUser.uid,
 
     player2: null,
 
