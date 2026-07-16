@@ -9,12 +9,15 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 console.log("game.js loaded");
-let selectedCard = null;
-let selectedLane = null;
+
 let laneButtonsSetup = false;
+let currentRoomId = null;
+let currentRoom = null;
 
 export function startGame(roomId)
 {
+    currentRoomId = roomId;
+
     const roomRef = doc(db, "rooms", roomId);
 
     onSnapshot(roomRef, async (snapshot)=>{
@@ -24,6 +27,8 @@ export function startGame(roomId)
         if(!room)
             return;
 
+        currentRoom = room;
+
 
         if(room.state === "playing")
         {
@@ -32,7 +37,7 @@ export function startGame(roomId)
             document.getElementById("roomName").style.display = "none";
 
             document.getElementById("game").style.display = "block";
-            setupLaneButtons(roomId);
+            setupLaneButtons();
             document.getElementById("players").innerText =
                 "Player 1: " + room.host +
                 "\nPlayer 2: " + room.player2;
@@ -46,7 +51,7 @@ export function startGame(roomId)
             }
 
 
-            renderCards(room);
+            renderCards(room, roomId);
         }
 
     });
@@ -157,7 +162,7 @@ async function createGame(roomRef)
 
 
 
-function renderCards(room)
+function renderCards(room, roomId)
 {
     const cardsDiv = document.getElementById("cards");
 
@@ -204,7 +209,7 @@ function renderCards(room)
 
         button.onclick = async () => {
 
-            await selectCard(room, playerKey, card.id);
+            await selectCard(roomId, playerKey, card.id);
 
         };
 
@@ -212,14 +217,11 @@ function renderCards(room)
         cardsDiv.appendChild(button);
 
     });
-
-
-    highlightLanes(room, playerKey);
 }
 
-async function selectCard(room, playerKey, cardId)
+async function selectCard(roomId, playerKey, cardId)
 {
-    const roomRef = doc(db, "rooms", room.id);
+    const roomRef = doc(db, "rooms", roomId);
 
     await updateDoc(roomRef, {
 
@@ -229,7 +231,7 @@ async function selectCard(room, playerKey, cardId)
 }
 
 
-function setupLaneButtons(roomId)
+function setupLaneButtons()
 {
     if(laneButtonsSetup)
         return;
