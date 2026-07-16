@@ -43,20 +43,21 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
         button.onclick = async () => {
 
-            await updateDoc(doc(db, "rooms", roomDoc.id), {
+    currentRoomId = roomDoc.id;
 
-                player2: auth.currentUser.uid,
+    watchRoom(currentRoomId);
 
-                state: "playing"
+    await updateDoc(doc(db, "rooms", roomDoc.id), {
 
-            });
+        player2: auth.currentUser.uid,
+        state: "playing"
 
-            currentRoomId = roomDoc.id;
-            watchRoom(currentRoomId);
-            document.getElementById("status").innerText =
-                "Joined room: " + room.name;
+    });
 
-        };
+    document.getElementById("status").innerText =
+        "Joined room: " + room.name;
+
+};
 
         roomsDiv.appendChild(button);
 
