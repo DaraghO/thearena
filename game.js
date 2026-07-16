@@ -164,7 +164,10 @@ function renderCards(room)
     }
 
 
-    let hand = room.game[playerKey].hand;
+    if(!room.game[playerKey])
+    return;
+
+let hand = room.game[playerKey].hand;
 
 
     hand.forEach(card => {
