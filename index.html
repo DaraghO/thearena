@@ -66,7 +66,39 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .side-tag{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:13px; }
 .side-tag .pip{ width:12px; height:12px; border-radius:4px; background:var(--enemy); }
 .side-tag .opp-gold{ color:var(--gold); font-weight:700; margin-left:2px; }
-.match-info{ font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:.5px; }
+.match-center{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    line-height:1;
+}
+
+.match-clock{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:24px;
+    letter-spacing:1px;
+    color:var(--text);
+}
+
+.match-clock.urgent{
+    color:var(--enemy-light);
+    animation:matchClockPulse .7s ease-in-out infinite;
+}
+
+.match-info{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:.5px;
+    color:var(--muted);
+    margin-top:4px;
+}
+
+@keyframes matchClockPulse{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.08); }
+}
 .gold-chip{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,194,60,.12); border:1px solid rgba(255,194,60,.35); color:var(--gold); border-radius:999px; padding:5px 12px 5px 8px; font-weight:700; font-size:14px; }
 .gold-chip .coin{ width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); border:1.5px solid #b9821a; }
 
@@ -217,7 +249,10 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     <section id="game" class="arena hidden">
         <div class="topbar">
             <div class="side-tag"><span class="pip"></span>Opponent<span id="oppGold" class="opp-gold">0</span></div>
-            <div id="matchInfo" class="match-info">Turn 1</div>
+            <div class="match-center">
+    <div id="matchClock" class="match-clock">3:00</div>
+    <div id="matchInfo" class="match-info">Turn 1</div>
+</div>
             <div class="gold-chip"><span class="coin"></span><span id="youGold">0</span></div>
         </div>
 
