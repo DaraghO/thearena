@@ -1,5 +1,6 @@
 import { db, auth } from "./firebase.js";
 import { getRandomCards } from "./cards.js";
+import { drawBoard, drawHand, setSelectedLane } from "./render.js";
 
 import {
     doc,
@@ -10,9 +11,13 @@ import {
 
 console.log("game.js loaded");
 
-let laneButtonsSetup = false;
+let uiSetup = false;
 let currentRoomId = null;
 let currentRoom = null;
+
+function selfKey(room){
+    return auth.currentUser.uid === room.host ? "player1" : "player2";
+}
 
 export function startGame(roomId)
 {
@@ -22,26 +27,19 @@ export function startGame(roomId)
 
     onSnapshot(roomRef, async (snapshot)=>{
 
-        let room = snapshot.data();
+        const room = snapshot.data();
 
         if(!room)
             return;
 
         currentRoom = room;
 
-
         if(room.state === "playing")
         {
-            document.getElementById("rooms").style.display = "none";
-            document.getElementById("createRoom").style.display = "none";
-            document.getElementById("roomName").style.display = "none";
+            document.getElementById("lobby").classList.add("hidden");
+            document.getElementById("game").classList.remove("hidden");
 
-            document.getElementById("game").style.display = "block";
-            setupLaneButtons();
-            document.getElementById("players").innerText =
-                "Player 1: " + room.host +
-                "\nPlayer 2: " + room.player2;
-
+            setupControls();
 
             // Only create the game once
             if(!room.game)
@@ -50,13 +48,21 @@ export function startGame(roomId)
                 return;
             }
 
-
-            renderCards(room, roomId);
+            renderState(room, roomId);
         }
 
     });
 }
 
+
+function renderState(room, roomId)
+{
+    const self = selfKey(room);
+
+    drawBoard(room, self);
+    drawHand(room, self, (cardId) => selectCard(roomId, self, cardId));
+    setSelectedLane(room.game[self].selectedLane);
+}
 
 
 async function createGame(roomRef)
@@ -64,90 +70,42 @@ async function createGame(roomRef)
     await runTransaction(db, async (transaction)=>{
 
         const snapshot = await transaction.get(roomRef);
-
         const room = snapshot.data();
 
-        // Someone else already created the game
         if(room.game)
-        {
             return;
-        }
-
 
         transaction.update(roomRef, {
 
             game: {
 
                 phase: "selection",
-
                 turn: 1,
-
                 timeRemaining: 5,
 
-
                 player1: {
-
                     gold: 10,
-
                     hand: getRandomCards(3),
-
                     selectedCard: null,
-
                     selectedLane: null
-
                 },
-
 
                 player2: {
-
                     gold: 10,
-
                     hand: getRandomCards(3),
-
                     selectedCard: null,
-
                     selectedLane: null
-
                 },
-
 
                 battlefield: {
-
                     lane1: [],
-
                     lane2: [],
-
                     lane3: []
-
                 },
 
-
                 towers: {
-
-                    player1: {
-
-                        left: 1000,
-
-                        middle: 1000,
-
-                        right: 1000,
-
-                        king: 3000
-
-                    },
-
-                    player2: {
-
-                        left: 1000,
-
-                        middle: 1000,
-
-                        right: 1000,
-
-                        king: 3000
-
-                    }
-
+                    player1: { left: 1000, middle: 1000, right: 1000, king: 3000 },
+                    player2: { left: 1000, middle: 1000, right: 1000, king: 3000 }
                 }
 
             }
@@ -156,116 +114,51 @@ async function createGame(roomRef)
 
     });
 
-
     console.log("Game created");
 }
 
 
-
-function renderCards(room, roomId)
+async function selectCard(roomId, self, cardId)
 {
-    const cardsDiv = document.getElementById("cards");
-
-    if(!cardsDiv)
-        return;
-
-    cardsDiv.innerHTML = "";
-
-
-    let playerKey;
-
-    if(auth.currentUser.uid === room.host)
-    {
-        playerKey = "player1";
-    }
-    else
-    {
-        playerKey = "player2";
-    }
-
-
-    if(!room.game[playerKey])
-        return;
-
-
-    let hand = room.game[playerKey].hand;
-
-
-    hand.forEach(card => {
-
-        let button = document.createElement("button");
-
-        button.innerText =
-            card.name +
-            "\nCost: " +
-            card.cost;
-
-
-        if(room.game[playerKey].selectedCard === card.id)
-        {
-            button.style.border = "3px solid yellow";
-        }
-
-
-        button.onclick = async () => {
-
-            await selectCard(roomId, playerKey, card.id);
-
-        };
-
-
-        cardsDiv.appendChild(button);
-
-    });
-}
-
-async function selectCard(roomId, playerKey, cardId)
-{
-    const roomRef = doc(db, "rooms", roomId);
-
-    await updateDoc(roomRef, {
-
-        [`game.${playerKey}.selectedCard`]: cardId
-
+    await updateDoc(doc(db, "rooms", roomId), {
+        [`game.${self}.selectedCard`]: cardId
     });
 }
 
 
-function setupLaneButtons()
+function setupControls()
 {
-    if(laneButtonsSetup)
+    if(uiSetup)
         return;
 
-    laneButtonsSetup = true;
+    uiSetup = true;
 
-
-    document.querySelectorAll(".laneButton").forEach(button => {
+    document.querySelectorAll(".lane-btn").forEach(button => {
 
         button.onclick = async () => {
 
             const lane = button.dataset.lane;
+            const self = selfKey(currentRoom);
 
-            const roomRef = doc(db, "rooms", currentRoomId);
-
-            let playerKey;
-
-            if(auth.currentUser.uid === currentRoom.host)
-            {
-                playerKey = "player1";
-            }
-            else
-            {
-                playerKey = "player2";
-            }
-
-
-            await updateDoc(roomRef, {
-
-                [`game.${playerKey}.selectedLane`]: lane
-
+            await updateDoc(doc(db, "rooms", currentRoomId), {
+                [`game.${self}.selectedLane`]: lane
             });
 
         };
 
     });
+
+    const skip = document.getElementById("skipBtn");
+    if(skip)
+    {
+        skip.onclick = async () => {
+
+            const self = selfKey(currentRoom);
+
+            await updateDoc(doc(db, "rooms", currentRoomId), {
+                [`game.${self}.selectedCard`]: null
+            });
+
+        };
+    }
 }
