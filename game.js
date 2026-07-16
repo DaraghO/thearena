@@ -243,8 +243,17 @@ setInterval(() => {
 
     const g = latestRoom.game;
 
+    const matchStart =
+    g.matchStartAt ||
+    g.selectionStartAt;
+
+if(matchStart)
+{
     const matchElapsed =
-        (Date.now() - (g.matchStartAt || Date.now())) / 1000;
+        (Date.now() - matchStart) / 1000;
+
+    setMatchTime(180 - matchElapsed);
+}
 
     const matchRemaining = 180 - matchElapsed;
 
