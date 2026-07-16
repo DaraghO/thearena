@@ -8,7 +8,7 @@ import {
     runTransaction
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-
+console.log("game.js loaded");
 let selectedCard = null;
 let selectedLane = null;
 let laneButtonsSetup = false;
