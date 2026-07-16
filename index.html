@@ -1,34 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>The Arena</title>
-</head>
+<div id="game" style="display:none;">
 
-<body>
+    <h2>Battle</h2>
 
-<h1>The Arena</h1>
+    <div id="players"></div>
 
-<input id="roomName" placeholder="Enter room name">
+    <h3>Your Cards</h3>
 
-<button id="createRoom">
-    Create Room
-</button>
+    <div id="cards"></div>
 
-<h2>Available Rooms</h2>
+    <h3>Select Lane</h3>
 
-<div id="rooms">
-    Loading...
+    <button class="laneButton" data-lane="lane1">
+        Lane 1
+    </button>
+
+    <button class="laneButton" data-lane="lane2">
+        Lane 2
+    </button>
+
+    <button class="laneButton" data-lane="lane3">
+        Lane 3
+    </button>
+
+
+    <p id="selectionStatus">
+        Choose a card and lane
+    </p>
+
 </div>
-    <div id="game" style="display:none;">
-
-    <h2>Battle Started</h2>
-
-    <p id="players"></p>
-
-</div>
-<h3 id="status"></h3>
-
-<script type="module" src="main.js"></script>
-
-</body>
-</html>
