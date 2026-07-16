@@ -114,6 +114,16 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .rig.state-die{ animation:die 0.9s ease-in forwards; }
 @keyframes die{ 0%{ transform:rotate(0) translateY(0); opacity:1; } 100%{ transform:rotate(78deg) translateY(6px); opacity:.15; } }
 
+
+/* --- added near rig rules ---- */
+    .rig.state-idle .arm-r{ transform:rotate(-12deg); }
+
+#result{ position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; background:rgba(10,12,20,.72); backdrop-filter:blur(2px); }
+#result .result-card{ background:var(--card); border:2px solid var(--card-line); border-radius:20px; padding:34px 44px; text-align:center; }
+#result .result-text{ font-family:var(--font-display); font-weight:700; font-size:40px; color:var(--enemy); }
+#result.win .result-text{ color:var(--you-light); }
+#result .result-sub{ color:var(--muted); font-size:14px; margin-top:6px; }
+    
 /* ---------- TRAY ---------- */
 .tray{ background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 30%); padding:8px 14px 16px; border-top:1px solid #222738; }
 .tray-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -207,6 +217,13 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         </div>
     </section>
 
+
+<div id="result" class="hidden">
+    <div class="result-card">
+        <div class="result-text">Victory</div>
+        <div class="result-sub">Refresh to play again</div>
+    </div>
+</div>    
 </div>
 
 <script type="module" src="main.js"></script>
