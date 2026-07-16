@@ -281,9 +281,33 @@ function setupControls(){
     if(uiSetup) return;
     uiSetup = true;
 
-    document.querySelectorAll(".lane-btn").forEach(b => {
-        b.onclick = () => writeSelection("selectedLane", b.dataset.lane);
-    });
+    const board = document.getElementById("board");
+
+    if(board){
+        board.addEventListener("click", event => {
+            if(!latestRoom || !latestRoom.game)
+                return;
+
+            if(latestRoom.game.phase !== "selection")
+                return;
+
+            const lane = event.target.closest(".lane-select");
+
+            if(!lane)
+                return;
+
+            writeSelection("selectedLane", lane.dataset.lane);
+        });
+    }
+
     const skip = document.getElementById("skipBtn");
-    if(skip) skip.onclick = () => writeSelection("selectedIndex", null);
+
+    if(skip){
+        skip.onclick = async () => {
+            await updateDoc(ref(), {
+                [`game.${self()}.selectedIndex`]: null,
+                [`game.${self()}.selectedLane`]: null
+            });
+        };
+    }
 }
