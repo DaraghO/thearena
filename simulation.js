@@ -51,7 +51,7 @@ function frameSnapshot(field, towers){
 
 const LANE_TOWER = { lane1:"left", lane2:"middle", lane3:"right" };
 
-export function resolveBattle(game){
+export function resolveBattle(game, requestedDuration = BATTLE_SECONDS){
     const field = cloneField(game.battlefield);
     const towers = {
         player1:{...game.towers.player1},
@@ -73,7 +73,7 @@ export function resolveBattle(game){
 
     const frames = [];
     let winner = null;
-    const steps = Math.round(BATTLE_SECONDS / DT);
+    const steps = Math.max(1, Math.ceil(requestedDuration / DT));
 
     for(let step=0; step<=steps && !winner; step++){
         frames.push(frameSnapshot(field, towers));
@@ -144,9 +144,26 @@ export function resolveBattle(game){
             field[lane] = troops.filter(t => t.hp > 0);
         });
     }
-
+    // The normal loop stops immediately after a King Tower is destroyed.
+    // Add one final frame so both clients actually render the destroyed tower.
+    if(winner){
+        frames.push(frameSnapshot(field, towers));
+    }
     gold.player1 = Math.min(GOLD_CAP, gold.player1 + PASSIVE_GOLD);
     gold.player2 = Math.min(GOLD_CAP, gold.player2 + PASSIVE_GOLD);
 
-    return { frames, battlefield:field, towers, gold, played, winner };
+   const actualDuration = Math.max(
+    DT,
+    (frames.length - 1) * DT
+);
+
+return {
+    frames,
+    battlefield: field,
+    towers,
+    gold,
+    played,
+    winner,
+    duration: actualDuration
+};
 }
