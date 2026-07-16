@@ -244,7 +244,9 @@ export function drawHand(room, self, onSelect){
     wrap.innerHTML = "";
     hand.forEach((card, i) => {
         const el = document.createElement("button");
-        el.className = "game-card" + (chosen === i ? " selected" : "");
+        el.className =
+    "game-card rarity-" + card.rarity +
+    (chosen === i ? " selected" : "");
         el.innerHTML = `
             <span class="cost"><span class="coin"></span>${card.cost}</span>
             <span class="rarity ${card.rarity}"></span>
