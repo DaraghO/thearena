@@ -26,45 +26,55 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
     roomsDiv.innerHTML = "";
 
+    let open = 0;
+
     snapshot.forEach((roomDoc)=>{
 
-        let room = roomDoc.data();
+        const room = roomDoc.data();
 
         if(room.host === auth.currentUser.uid)
-        {
             return;
-        }
 
         if(room.player2 !== null)
-        {
             return;
-        }
 
-        let button = document.createElement("button");
+        open++;
 
-        button.innerText = "Join " + room.name;
+        const el = document.createElement("div");
+        el.className = "room";
+        el.innerHTML = `
+            <span class="dot"></span>
+            <div class="info">
+                <div class="name"></div>
+                <div class="sub">Host waiting</div>
+            </div>
+            <button class="btn-join">Join</button>`;
 
-        button.onclick = async () => {
+        el.querySelector(".name").textContent = room.name;
 
-    currentRoomId = roomDoc.id;
+        el.querySelector(".btn-join").onclick = async () => {
 
-    startGame(currentRoomId);
+            currentRoomId = roomDoc.id;
+            startGame(currentRoomId);
 
-    await updateDoc(doc(db, "rooms", roomDoc.id), {
+            await updateDoc(doc(db, "rooms", roomDoc.id), {
+                player2: auth.currentUser.uid,
+                state: "playing"
+            });
 
-        player2: auth.currentUser.uid,
-        state: "playing"
+            document.getElementById("status").textContent = "Joined room: " + room.name;
+        };
+
+        roomsDiv.appendChild(el);
 
     });
 
-    document.getElementById("status").innerText =
-        "Joined room: " + room.name;
+    const countEl = document.getElementById("roomCount");
+    if(countEl)
+        countEl.textContent = open + (open === 1 ? " waiting" : " waiting");
 
-};
-
-        roomsDiv.appendChild(button);
-
-    });
+    if(open === 0)
+        roomsDiv.innerHTML = `<div class="empty">No open rooms. Create one to start.</div>`;
 
 });
 
@@ -72,48 +82,41 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 // Create room
 
 createButton.onclick = async ()=>{
-const roomName = document.getElementById("roomName").value.trim();
 
-if(roomName === "")
-{
-    alert("Please enter a room name.");
-    return;
-}
+    const roomName = document.getElementById("roomName").value.trim();
 
-
-const roomsSnapshot = await getDocs(collection(db, "rooms"));
-
-let exists = false;
-
-roomsSnapshot.forEach((roomDoc)=>{
-    if(roomDoc.data().name.toLowerCase() === roomName.toLowerCase())
+    if(roomName === "")
     {
-        exists = true;
+        alert("Please enter a room name.");
+        return;
     }
-});
 
+    const roomsSnapshot = await getDocs(collection(db, "rooms"));
 
-if(exists)
-{
-    alert("A room with that name already exists.");
-    return;
-}
+    let exists = false;
+
+    roomsSnapshot.forEach((roomDoc)=>{
+        if(roomDoc.data().name.toLowerCase() === roomName.toLowerCase())
+            exists = true;
+    });
+
+    if(exists)
+    {
+        alert("A room with that name already exists.");
+        return;
+    }
+
     const roomRef = await addDoc(collection(db, "rooms"), {
-
-name: roomName,
+        name: roomName,
         host: auth.currentUser.uid,
+        player2: null,
+        state: "waiting",
+        created: serverTimestamp()
+    });
 
-    player2: null,
+    currentRoomId = roomRef.id;
+    startGame(currentRoomId);
 
-    state: "waiting",
-
-    created: serverTimestamp()
-
-});
-
-currentRoomId = roomRef.id;
-startGame(currentRoomId);
-    document.getElementById("status").innerText =
-    "You created: " + document.getElementById("roomName").value;
+    document.getElementById("status").textContent = "You created: " + roomName;
 
 };
