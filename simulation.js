@@ -39,7 +39,8 @@ function frameSnapshot(field, towers){
     ["lane1","lane2","lane3"].forEach(l => {
         field[l].forEach(t => troops.push({
             id:t.id, owner:t.owner, cardId:t.cardId, lane:l,
-            x:+t.x.toFixed(4), state:t.state
+            x:+t.x.toFixed(4), state:t.state,
+            hpRatio:+(t.hp / t.maxHp).toFixed(3)
         }));
     });
     return {
@@ -59,15 +60,15 @@ export function resolveBattle(game){
     const gold = { player1:game.player1.gold, player2:game.player2.gold };
     const played = { player1:null, player2:null };
 
-    // spawns from locked selections
+    // spawns from locked selections (selectedIndex points into that player's hand)
     ["player1","player2"].forEach(p => {
-        const sel = game[p].selectedCard, lane = game[p].selectedLane;
-        if(!sel || !lane) return;
-        const c = byId[sel];
+        const idx = game[p].selectedIndex, lane = game[p].selectedLane;
+        if(idx === null || idx === undefined || !lane) return;
+        const c = (game[p].hand || [])[idx];
         if(!c || c.type !== "unit" || gold[p] < c.cost) return;
         gold[p] -= c.cost;
-        field[lane].push(spawnTroop(p, sel, lane));
-        played[p] = sel;
+        field[lane].push(spawnTroop(p, c.id, lane));
+        played[p] = c.id;
     });
 
     const frames = [];
@@ -98,7 +99,6 @@ export function resolveBattle(game){
                 const detR = (c.detectRange || c.range) * T;
                 t.cd = Math.max(0, t.cd - DT);
 
-                // fight an enemy troop
                 if(target && best <= atkR){
                     t.state = "attack";
                     if(t.cd <= 0){
@@ -117,7 +117,6 @@ export function resolveBattle(game){
                     return;
                 }
 
-                // advance on the enemy tower / king
                 const goal = t.owner === "player1" ? 1 : 0;
                 const distGoal = Math.abs(goal - t.x);
                 const laneTower = LANE_TOWER[lane];
