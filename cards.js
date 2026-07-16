@@ -81,3 +81,12 @@ export const cards = [
     }
 
 ];
+
+
+export function getRandomCards(amount = 3)
+{
+    let shuffled = [...cards]
+        .sort(() => Math.random() - 0.5);
+
+    return shuffled.slice(0, amount);
+}
