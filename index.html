@@ -179,16 +179,134 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .timer-ring text{ fill:var(--text); font-family:var(--font-display); font-weight:700; font-size:15px; text-anchor:middle; dominant-baseline:central; }
 
 .cards{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px; }
-.game-card{ position:relative; background:linear-gradient(180deg, #2a3040, #232838); border:2px solid var(--card-line); border-radius:14px; padding:8px 6px 6px; display:flex; flex-direction:column; align-items:center; transition:transform .08s ease, border-color .12s ease; }
-.game-card.selected{ border-color:var(--gold); transform:translateY(-4px); box-shadow:0 6px 16px rgba(0,0,0,.4); }
-.game-card .cost{ position:absolute; top:6px; left:6px; display:inline-flex; align-items:center; gap:3px; background:rgba(255,194,60,.15); color:var(--gold); border-radius:8px; padding:2px 6px; font-size:12px; font-weight:700; }
-.game-card .cost .coin{ width:11px; height:11px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); }
-.game-card .rarity{ position:absolute; top:8px; right:8px; width:9px; height:9px; border-radius:50%; }
-.rarity.common{ background:#c7cdd6; }
-.rarity.rare{ background:#4aa3ff; }
-.rarity.legendary{ background:#c874ff; }
-.game-card .portrait{ width:70px; height:84px; display:block; }
-.game-card .cname{ font-family:var(--font-display); font-weight:600; font-size:13px; margin-top:2px; }
+.game-card{
+    position:relative;
+    border:2px solid;
+    border-radius:14px;
+    padding:8px 6px 6px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    overflow:hidden;
+    color:#fff;
+    transition:
+        transform .08s ease,
+        border-color .12s ease,
+        box-shadow .12s ease;
+}
+
+.game-card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(
+        180deg,
+        rgba(255,255,255,.12),
+        rgba(0,0,0,.18)
+    );
+}
+
+.game-card > *{
+    position:relative;
+    z-index:1;
+}
+
+.game-card.rarity-common{
+    background:linear-gradient(180deg, #59616e, #303641);
+    border-color:#aeb6c2;
+}
+
+.game-card.rarity-rare{
+    background:linear-gradient(180deg, #2469a8, #163b69);
+    border-color:#55b5ff;
+    box-shadow:inset 0 0 18px rgba(74,163,255,.18);
+}
+
+.game-card.rarity-legendary{
+    background:linear-gradient(180deg, #7636a5, #3e195f);
+    border-color:#dc8cff;
+    box-shadow:inset 0 0 20px rgba(200,116,255,.22);
+}
+
+.game-card.selected{
+    border-color:var(--gold);
+    transform:translateY(-4px);
+    box-shadow:
+        0 6px 16px rgba(0,0,0,.4),
+        0 0 0 2px rgba(255,194,60,.35);
+}
+
+.game-card .cost{
+    position:absolute;
+    top:6px;
+    left:6px;
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    background:rgba(10,12,18,.82);
+    border:1px solid rgba(255,194,60,.55);
+    color:#ffd66f;
+    border-radius:8px;
+    padding:3px 7px;
+    font-size:12px;
+    font-weight:800;
+    text-shadow:0 1px 2px #000;
+}
+
+.game-card .cost .coin{
+    width:11px;
+    height:11px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffe08a, var(--gold));
+}
+
+.game-card .rarity{
+    position:absolute;
+    top:8px;
+    right:8px;
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    box-shadow:0 0 0 2px rgba(0,0,0,.25);
+}
+
+.rarity.common{
+    background:#c7cdd6;
+}
+
+.rarity.rare{
+    background:#4aa3ff;
+}
+
+.rarity.legendary{
+    background:#c874ff;
+}
+
+.game-card .portrait{
+    width:70px;
+    height:84px;
+    display:block;
+}
+
+.game-card .cname{
+    width:100%;
+    min-height:30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-top:2px;
+    padding:4px 5px;
+    border-radius:7px;
+    background:rgba(10,12,18,.72);
+    color:#fff;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:13px;
+    line-height:1.05;
+    text-align:center;
+    text-shadow:0 1px 2px #000;
+}
 
 .lanes-row{ display:flex; gap:10px; }
 .lane-btn{ flex:1; background:#232838; border:1.5px solid #333b50; border-radius:12px; color:var(--text); padding:12px 0; font-weight:700; font-size:13px; }
