@@ -294,21 +294,64 @@ function towerCountWinner(towers){
 
 async function resolvePhase(){
     const g = latestRoom.game;
-    if(!g || g.phase !== "selection" || !isHost()) return;
 
-    const r = resolveBattle(g);
+    if(!g || g.phase !== "selection" || !isHost())
+        return;
 
-    const elapsed = (Date.now() - g.matchStartAt) / 1000;
+    const elapsed =
+        (Date.now() - g.matchStartAt) / 1000;
+
+    const matchRemaining =
+        Math.max(0, 180 - elapsed);
+
+    // The three-minute clock has already expired before this
+    // rest phase finished. End immediately instead of creating
+    // another ten-second battle.
+    if(matchRemaining <= 0){
+        await updateDoc(ref(), {
+            "game.phase": "ended",
+            "game.winner": towerCountWinner(g.towers),
+            "game.battle": null
+        });
+
+        return;
+    }
+
+    // Do not let a battle continue beyond the remaining match time.
+    const allowedBattleDuration =
+        Math.min(BATTLE_SECONDS, matchRemaining);
+
+    const r =
+        resolveBattle(g, allowedBattleDuration);
+
     let endWinner = r.winner;
-    if(!endWinner && elapsed >= 180) endWinner = towerCountWinner(r.towers);
+
+    // If this battle reaches the three-minute limit without
+    // destroying a King Tower, decide using destroyed towers.
+    if(
+        !endWinner &&
+        allowedBattleDuration >= matchRemaining
+    ){
+        endWinner = towerCountWinner(r.towers);
+    }
 
     await updateDoc(ref(), {
         "game.phase": "battle",
-        "game.battle": { frames:r.frames, startAt:Date.now(), duration:BATTLE_SECONDS, dt:DT, endWinner: endWinner || null },
+
+        "game.battle": {
+            frames: r.frames,
+            startAt: Date.now(),
+            duration: r.duration,
+            dt: DT,
+            endWinner: endWinner || null
+        },
+
         "game.battlefield": r.battlefield,
         "game.towers": r.towers,
+
         "game.player1.gold": r.gold.player1,
         "game.player2.gold": r.gold.player2,
+
         "game.player1.selectedIndex": null,
         "game.player1.selectedLane": null,
         "game.player2.selectedIndex": null,
