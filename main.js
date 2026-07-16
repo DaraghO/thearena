@@ -52,7 +52,7 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
             });
 
             currentRoomId = roomDoc.id;
-
+            watchRoom(currentRoomId);
             document.getElementById("status").innerText =
                 "Joined room: " + room.name;
 
@@ -64,7 +64,28 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
 });
 
+function watchRoom(roomId)
+{
+    const roomRef = doc(db, "rooms", roomId);
 
+    onSnapshot(roomRef, (snapshot)=>{
+
+        let room = snapshot.data();
+
+        if(room.state === "playing")
+        {
+            document.getElementById("rooms").style.display = "none";
+            document.getElementById("createRoom").style.display = "none";
+
+            document.getElementById("game").style.display = "block";
+
+            document.getElementById("players").innerText =
+                "Player 1: " + room.host +
+                "\nPlayer 2: " + room.player2;
+        }
+
+    });
+}
 // Create room
 
 createButton.onclick = async ()=>{
@@ -108,7 +129,7 @@ name: roomName,
 });
 
 currentRoomId = roomRef.id;
-
+watchRoom(currentRoomId);
 document.getElementById("status").innerText =
     "You created: " + document.getElementById("roomName").value;
 
