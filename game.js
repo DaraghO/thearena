@@ -4,7 +4,8 @@ import { resolveBattle, BATTLE_SECONDS, DT } from "./simulation.js";
 import {
     renderBoard, initBattle, drawBattleFrame, resetBattle,
     drawTopbar, drawHand, setSelectedLane,
-    setPhaseTag, setPhaseTime, setTrayLocked, showBanner,
+    setPhaseTag, setPhaseTime, setMatchTime,
+    setTrayLocked, showBanner,
     showResult, hideResult
 } from "./render.js";
 
@@ -236,12 +237,29 @@ async function finalizePhase(){
 
 /* ---------------- LOCAL COUNTDOWN ---------------- */
 setInterval(() => {
-    if(!latestRoom || !latestRoom.game) return;
+
+    if(!latestRoom || !latestRoom.game)
+        return;
+
     const g = latestRoom.game;
-    if(g.phase === "selection"){
-        const left = SELECTION_SECONDS - (Date.now() - (g.selectionStartAt||Date.now()))/1000;
-        setPhaseTime(Math.max(0, Math.ceil(left)));
+
+    const matchElapsed =
+        (Date.now() - (g.matchStartAt || Date.now())) / 1000;
+
+    const matchRemaining = 180 - matchElapsed;
+
+    setMatchTime(matchRemaining);
+
+
+    if(g.phase === "selection")
+    {
+        const phaseRemaining =
+            SELECTION_SECONDS -
+            (Date.now() - (g.selectionStartAt || Date.now())) / 1000;
+
+        setPhaseTime(Math.max(0, Math.ceil(phaseRemaining)));
     }
+
 }, 250);
 
 /* ---------------- INPUT ---------------- */
