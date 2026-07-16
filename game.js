@@ -2,7 +2,8 @@ import { db, auth } from "./firebase.js";
 import { getRandomUnitCards, cards } from "./cards.js";
 import { resolveBattle, BATTLE_SECONDS, DT } from "./simulation.js";
 import {
-    renderBoard, drawTopbar, drawHand, setSelectedLane,
+    renderBoard, initBattle, drawBattleFrame, resetBattle,
+    drawTopbar, drawHand, setSelectedLane,
     setPhaseTag, setPhaseTime, setTrayLocked, showBanner,
     showResult, hideResult
 } from "./render.js";
@@ -14,18 +15,16 @@ import {
 console.log("game.js loaded");
 
 const SELECTION_SECONDS = 5;
-const byId = {};
-cards.forEach(c => byId[c.id] = c);
 
 let roomId = null;
 let latestRoom = null;
 let uiSetup = false;
 
-let schedTag = null;      // host: which phase instance we've scheduled
+let schedTag = null;
 let hostTimer = null;
-let replayTag = null;     // client: which battle we're replaying
+let replayTag = null;
 let replayRaf = null;
-let lastPhase = null;     // client: to flash a banner only on change
+let lastPhase = null;
 
 function self(){ return auth.currentUser.uid === latestRoom.host ? "player1" : "player2"; }
 function isHost(){ return auth.currentUser.uid === latestRoom.host; }
@@ -64,8 +63,8 @@ async function createGame(){
             phase:"selection", turn:1,
             selectionStartAt: now, matchStartAt: now,
             battle: null,
-            player1: { gold:10, hand:getRandomUnitCards(3), selectedCard:null, selectedLane:null },
-            player2: { gold:10, hand:getRandomUnitCards(3), selectedCard:null, selectedLane:null },
+            player1: { gold:10, hand:getRandomUnitCards(3), selectedIndex:null, selectedLane:null },
+            player2: { gold:10, hand:getRandomUnitCards(3), selectedIndex:null, selectedLane:null },
             battlefield: { lane1:[], lane2:[], lane3:[] },
             towers: {
                 player1:{ left:1000, middle:1000, right:1000, king:3000 },
@@ -82,7 +81,8 @@ function flatten(bf, forceState){
     ["lane1","lane2","lane3"].forEach(l =>
         (bf[l]||[]).forEach(t => out.push({
             lane:l, x:t.x, cardId:t.cardId, owner:t.owner,
-            state: forceState || t.state
+            state: forceState || t.state,
+            hpRatio: t.maxHp ? t.hp / t.maxHp : 1
         })));
     return out;
 }
@@ -111,7 +111,7 @@ function render(room){
     if(g.phase === "battle"){
         setTrayLocked(true);
         setPhaseTag("Battle Phase", "battle");
-        drawHand(room, me, ()=>{});          // next hand, not interactive this phase
+        drawHand(room, me, ()=>{});
         startReplay(g.battle, me);
         return;
     }
@@ -120,7 +120,7 @@ function render(room){
     stopReplay();
     setTrayLocked(false);
     renderBoard(g.towers, flatten(g.battlefield, "idle"), me);
-    drawHand(room, me, (cardId) => writeSelection("selectedCard", cardId));
+    drawHand(room, me, (index) => writeSelection("selectedIndex", index));
     setSelectedLane(g[me].selectedLane);
     setPhaseTag("Rest Phase", "rest");
 }
@@ -131,7 +131,9 @@ function startReplay(battle, me){
     stopReplay();
     replayTag = battle.startAt;
     const frames = battle.frames, dt = battle.dt || DT, dur = battle.duration || BATTLE_SECONDS;
-    const localStart = Date.now();   // replay from receipt, not host clock, to dodge clock skew
+    const localStart = Date.now();
+
+    initBattle(me);
 
     const step = () => {
         if(!latestRoom || !latestRoom.game || latestRoom.game.phase !== "battle"
@@ -140,11 +142,19 @@ function startReplay(battle, me){
             return;
         }
         const elapsed = (Date.now() - localStart) / 1000;
-        const idx = Math.max(0, Math.min(frames.length - 1, Math.floor(elapsed / dt)));
-        const f = frames[idx];
-        renderBoard(f.towers, f.troops.map(t => ({ ...t })), me);
+        const fpos = elapsed / dt;
+        const idx = Math.min(frames.length - 1, Math.floor(fpos));
+        const nidx = Math.min(frames.length - 1, idx + 1);
+        const tt = Math.max(0, Math.min(1, fpos - idx));
+
+        drawBattleFrame(frames[idx], frames[nidx], tt, me);
         setPhaseTime(Math.max(0, Math.ceil(dur - elapsed)));
-        if(elapsed < dur) replayRaf = requestAnimationFrame(step);
+
+        if(elapsed < dur){
+            replayRaf = requestAnimationFrame(step);
+        } else {
+            drawBattleFrame(frames[frames.length - 1], null, 1, me);
+        }
     };
     replayRaf = requestAnimationFrame(step);
 }
@@ -152,11 +162,12 @@ function stopReplay(){
     if(replayRaf) cancelAnimationFrame(replayRaf);
     replayRaf = null;
     replayTag = null;
+    resetBattle();
 }
 
 /* ---------------- HOST CLOCK ---------------- */
 function hostSchedule(g){
-    const tag = g.phase + ":" + g.turn + ":" + (g.selectionStartAt || g.battle?.startAt || 0);
+    const tag = g.phase + ":" + g.turn + ":" + (g.selectionStartAt || (g.battle && g.battle.startAt) || 0);
     if(schedTag === tag) return;
     schedTag = tag;
     clearTimeout(hostTimer);
@@ -170,24 +181,9 @@ function hostSchedule(g){
     }
 }
 
-function topUpHand(hand, playedId){
-    if(!playedId) return hand;
-    const i = hand.findIndex(c => c.id === playedId);
-    if(i < 0) return hand;
-    const next = hand.slice();
-    next.splice(i, 1);
-    const have = new Set(next.map(c => c.id));
-    const options = cards.filter(c => c.type === "unit" && !have.has(c.id));
-    const pick = options.length
-        ? options[Math.floor(Math.random() * options.length)]
-        : getRandomUnitCards(1)[0];
-    next.push(pick);
-    return next;
-}
-
 function towerCountWinner(towers){
     const dead = side => ["left","middle","right","king"].filter(k => towers[side][k] <= 0).length;
-    const p1 = dead("player2"), p2 = dead("player1");   // towers each player destroyed
+    const p1 = dead("player2"), p2 = dead("player1");
     if(p1 > p2) return "player1";
     if(p2 > p1) return "player2";
     return "draw";
@@ -198,9 +194,6 @@ async function resolvePhase(){
     if(!g || g.phase !== "selection" || !isHost()) return;
 
     const r = resolveBattle(g);
-
-    const hand1 = topUpHand(g.player1.hand, r.played.player1);
-    const hand2 = topUpHand(g.player2.hand, r.played.player2);
 
     const elapsed = (Date.now() - g.matchStartAt) / 1000;
     let endWinner = r.winner;
@@ -213,11 +206,9 @@ async function resolvePhase(){
         "game.towers": r.towers,
         "game.player1.gold": r.gold.player1,
         "game.player2.gold": r.gold.player2,
-        "game.player1.hand": hand1,
-        "game.player2.hand": hand2,
-        "game.player1.selectedCard": null,
+        "game.player1.selectedIndex": null,
         "game.player1.selectedLane": null,
-        "game.player2.selectedCard": null,
+        "game.player2.selectedIndex": null,
         "game.player2.selectedLane": null
     });
 }
@@ -233,8 +224,12 @@ async function finalizePhase(){
         });
     } else {
         await updateDoc(ref(), {
-            "game.phase":"selection", "game.turn": g.turn + 1,
-            "game.selectionStartAt": Date.now(), "game.battle": null
+            "game.phase":"selection",
+            "game.turn": g.turn + 1,
+            "game.selectionStartAt": Date.now(),
+            "game.battle": null,
+            "game.player1.hand": getRandomUnitCards(3),   // fresh cards each rest phase
+            "game.player2.hand": getRandomUnitCards(3)
         });
     }
 }
@@ -263,5 +258,5 @@ function setupControls(){
         b.onclick = () => writeSelection("selectedLane", b.dataset.lane);
     });
     const skip = document.getElementById("skipBtn");
-    if(skip) skip.onclick = () => writeSelection("selectedCard", null);
+    if(skip) skip.onclick = () => writeSelection("selectedIndex", null);
 }
