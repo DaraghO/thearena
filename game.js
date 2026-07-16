@@ -1,5 +1,5 @@
 import { db } from "./firebase.js";
-
+import { getRandomCards } from "./cards.js";
 import {
     doc,
     onSnapshot,
