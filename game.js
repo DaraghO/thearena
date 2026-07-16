@@ -32,7 +32,7 @@ export function startGame(roomId)
             document.getElementById("roomName").style.display = "none";
 
             document.getElementById("game").style.display = "block";
-            setupLaneButtons();
+            setupLaneButtons(roomId);
             document.getElementById("players").innerText =
                 "Player 1: " + room.host +
                 "\nPlayer 2: " + room.player2;
@@ -164,12 +164,10 @@ function renderCards(room)
     if(!cardsDiv)
         return;
 
-
     cardsDiv.innerHTML = "";
 
 
     let playerKey;
-
 
     if(auth.currentUser.uid === room.host)
     {
@@ -182,9 +180,10 @@ function renderCards(room)
 
 
     if(!room.game[playerKey])
-    return;
+        return;
 
-let hand = room.game[playerKey].hand;
+
+    let hand = room.game[playerKey].hand;
 
 
     hand.forEach(card => {
@@ -197,12 +196,15 @@ let hand = room.game[playerKey].hand;
             card.cost;
 
 
-        button.onclick = () => {
+        if(room.game[playerKey].selectedCard === card.id)
+        {
+            button.style.border = "3px solid yellow";
+        }
 
-            selectedCard = card.id;
 
-            document.getElementById("selectionStatus").innerText =
-                "Selected card: " + card.name;
+        button.onclick = async () => {
+
+            await selectCard(room, playerKey, card.id);
 
         };
 
@@ -210,25 +212,56 @@ let hand = room.game[playerKey].hand;
         cardsDiv.appendChild(button);
 
     });
+
+
+    highlightLanes(room, playerKey);
+}
+
+async function selectCard(room, playerKey, cardId)
+{
+    const roomRef = doc(db, "rooms", room.id);
+
+    await updateDoc(roomRef, {
+
+        [`game.${playerKey}.selectedCard`]: cardId
+
+    });
 }
 
 
-
-function setupLaneButtons()
+function setupLaneButtons(roomId)
 {
     if(laneButtonsSetup)
         return;
 
     laneButtonsSetup = true;
 
+
     document.querySelectorAll(".laneButton").forEach(button => {
 
-        button.onclick = () => {
+        button.onclick = async () => {
 
-            selectedLane = button.dataset.lane;
+            const lane = button.dataset.lane;
 
-            document.getElementById("selectionStatus").innerText =
-                "Selected lane: " + selectedLane;
+            const roomRef = doc(db, "rooms", currentRoomId);
+
+            let playerKey;
+
+            if(auth.currentUser.uid === currentRoom.host)
+            {
+                playerKey = "player1";
+            }
+            else
+            {
+                playerKey = "player2";
+            }
+
+
+            await updateDoc(roomRef, {
+
+                [`game.${playerKey}.selectedLane`]: lane
+
+            });
 
         };
 
