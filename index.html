@@ -1,59 +1,214 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>The Arena</title>
-</head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+    --stage:#12151f; --stage-2:#191d2b;
+    --sand:#e7d6ad; --sand-line:#d3bd8f; --sand-edge:#c3a86f;
+    --rim:#3b3324; --ink:#241f18;
+    --you:#18b3c4; --you-dark:#0d7c89; --you-light:#54d3df;
+    --enemy:#ef5a3c; --enemy-dark:#b23a22; --enemy-light:#ff8b6f;
+    --gold:#ffc23c; --text:#f4efe6; --muted:#98917f;
+    --card:#20242f; --card-line:#2f3542;
+    --font-display:"Fredoka", ui-rounded, system-ui, sans-serif;
+    --font-ui:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; background:var(--stage); color:var(--text); font-family:var(--font-ui); -webkit-tap-highlight-color:transparent; }
+.hidden{ display:none !important; }
+button{ font-family:var(--font-ui); cursor:pointer; }
+button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 
+.frame{
+    max-width:430px; margin:0 auto; min-height:100dvh;
+    background:radial-gradient(120% 80% at 50% 0%, var(--stage-2), var(--stage) 70%);
+    display:flex; flex-direction:column;
+}
+
+/* ---------- LOBBY ---------- */
+.lobby{ flex:1; display:flex; flex-direction:column; padding:34px 22px 22px; }
+.brand{ text-align:center; margin-bottom:28px; }
+.brand .crest{ width:76px; height:76px; margin:0 auto 10px; display:block; }
+.brand h1{ font-family:var(--font-display); font-weight:700; font-size:44px; line-height:.9; letter-spacing:1px; margin:0; }
+.brand h1 em{ color:var(--gold); font-style:normal; }
+.brand p{ color:var(--muted); font-size:14px; margin:8px 0 0; letter-spacing:.3px; }
+
+.make-room{ display:flex; gap:10px; margin-bottom:26px; }
+.make-room input{ flex:1; min-width:0; background:var(--card); border:1px solid var(--card-line); border-radius:12px; color:var(--text); padding:14px 16px; font-size:16px; }
+.make-room input::placeholder{ color:var(--muted); }
+.make-room input:focus-visible{ outline:none; border-color:var(--you); }
+.btn-primary{ background:var(--you); color:#062a2e; border:none; border-radius:12px; padding:0 20px; font-weight:700; font-size:15px; box-shadow:0 4px 0 var(--you-dark); }
+.btn-primary:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--you-dark); }
+
+.rooms-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+.rooms-head h2{ font-family:var(--font-display); font-weight:600; font-size:18px; margin:0; }
+.rooms-head .count{ color:var(--muted); font-size:13px; }
+.status{ color:var(--muted); font-size:13px; min-height:18px; margin:0 0 10px; }
+
+.room{ display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--card-line); border-radius:14px; padding:14px; margin-bottom:10px; }
+.room .dot{ width:10px; height:10px; border-radius:50%; background:#5cd08a; flex:none; box-shadow:0 0 0 4px rgba(92,208,138,.15); }
+.room .info{ flex:1; min-width:0; }
+.room .name{ font-weight:600; font-size:15px; }
+.room .sub{ color:var(--muted); font-size:12px; margin-top:2px; }
+.btn-join{ background:transparent; color:var(--you-light); border:1.5px solid var(--you-dark); border-radius:10px; padding:9px 16px; font-weight:700; font-size:13px; }
+.btn-join:active{ background:var(--you-dark); color:#fff; }
+.empty{ color:var(--muted); font-size:13px; padding:8px 2px; }
+
+/* ---------- ARENA ---------- */
+.arena{ flex:1; display:flex; flex-direction:column; }
+.topbar{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px 6px; }
+.side-tag{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:13px; }
+.side-tag .pip{ width:12px; height:12px; border-radius:4px; background:var(--enemy); }
+.side-tag .opp-gold{ color:var(--gold); font-weight:700; margin-left:2px; }
+.match-info{ font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:.5px; }
+.gold-chip{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,194,60,.12); border:1px solid rgba(255,194,60,.35); color:var(--gold); border-radius:999px; padding:5px 12px 5px 8px; font-weight:700; font-size:14px; }
+.gold-chip .coin{ width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); border:1.5px solid #b9821a; }
+
+.board-wrap{ flex:1; padding:6px 8px 2px; min-height:0; }
+#board{ width:100%; height:100%; display:block; }
+
+/* rig visuals + states, shared by board troops and card portraits */
+.rig .shadow{ fill:rgba(20,15,8,.28); }
+.rig .torso{ fill:var(--team); stroke:var(--ink); stroke-width:2.5; }
+.rig .emblem{ fill:var(--team-light); }
+.rig .leg{ fill:var(--team-dark); stroke:var(--ink); stroke-width:2.5; }
+.rig .limb{ fill:var(--team-dark); stroke:var(--ink); stroke-width:2.5; }
+.rig .helmet{ fill:var(--team-light); stroke:var(--ink); stroke-width:2.5; }
+.rig .visor{ fill:var(--ink); }
+.rig .plume{ fill:var(--gold); }
+.rig .blade{ fill:#dfe6ee; stroke:var(--ink); stroke-width:2; }
+.rig .guard{ fill:#9aa4b0; stroke:var(--ink); stroke-width:2; }
+.rig .pawn-q{ fill:var(--ink); font-family:var(--font-display); font-weight:700; font-size:22px; }
+.rig.team-you{ --team:var(--you); --team-dark:var(--you-dark); --team-light:var(--you-light); }
+.rig.team-enemy{ --team:var(--enemy); --team-dark:var(--enemy-dark); --team-light:var(--enemy-light); }
+
+.rig .leg, .rig .arm-l, .rig .arm-r, .rig .body, .rig{ transform-box:fill-box; }
+.rig .leg{ transform-origin:50% 0%; }
+.rig .arm-l{ transform-origin:50% 0%; }
+.rig .arm-r{ transform-origin:47% 61%; }
+.rig .body{ transform-origin:50% 100%; }
+
+.rig.state-pose .body{ animation:breathe 2.6s ease-in-out infinite; }
+.rig.state-pose .arm-r{ transform:rotate(-12deg); animation:proud 2.6s ease-in-out infinite; }
+@keyframes breathe{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-2px); } }
+@keyframes proud{ 0%,100%{ transform:rotate(-12deg); } 50%{ transform:rotate(-18deg); } }
+
+.rig.state-walk .leg-l{ animation:step 0.6s ease-in-out infinite; }
+.rig.state-walk .leg-r{ animation:step 0.6s ease-in-out infinite reverse; }
+.rig.state-walk .body{ animation:bob 0.6s ease-in-out infinite; }
+.rig.state-walk .arm-r{ transform:rotate(-10deg); }
+@keyframes step{ 0%{ transform:rotate(20deg); } 50%{ transform:rotate(-20deg); } 100%{ transform:rotate(20deg); } }
+@keyframes bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+
+.rig.state-attack .arm-r{ animation:swing 0.7s ease-in-out infinite; }
+.rig.state-attack .body{ animation:lunge 0.7s ease-in-out infinite; }
+@keyframes swing{ 0%{ transform:rotate(-40deg); } 35%{ transform:rotate(-55deg); } 60%{ transform:rotate(40deg); } 100%{ transform:rotate(-40deg); } }
+@keyframes lunge{ 0%,100%{ transform:translateY(0); } 55%{ transform:translateY(-4px); } }
+
+.rig.state-die{ animation:die 0.9s ease-in forwards; }
+@keyframes die{ 0%{ transform:rotate(0) translateY(0); opacity:1; } 100%{ transform:rotate(78deg) translateY(6px); opacity:.15; } }
+
+/* ---------- TRAY ---------- */
+.tray{ background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 30%); padding:8px 14px 16px; border-top:1px solid #222738; }
+.tray-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.phase-tag{ font-family:var(--font-display); font-weight:600; font-size:14px; letter-spacing:.5px; color:var(--you-light); }
+.timer-ring{ width:44px; height:44px; }
+.timer-ring .track{ fill:none; stroke:#2a2f3d; stroke-width:5; }
+.timer-ring text{ fill:var(--text); font-family:var(--font-display); font-weight:700; font-size:15px; text-anchor:middle; dominant-baseline:central; }
+
+.cards{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px; }
+.game-card{ position:relative; background:linear-gradient(180deg, #2a3040, #232838); border:2px solid var(--card-line); border-radius:14px; padding:8px 6px 6px; display:flex; flex-direction:column; align-items:center; transition:transform .08s ease, border-color .12s ease; }
+.game-card.selected{ border-color:var(--gold); transform:translateY(-4px); box-shadow:0 6px 16px rgba(0,0,0,.4); }
+.game-card .cost{ position:absolute; top:6px; left:6px; display:inline-flex; align-items:center; gap:3px; background:rgba(255,194,60,.15); color:var(--gold); border-radius:8px; padding:2px 6px; font-size:12px; font-weight:700; }
+.game-card .cost .coin{ width:11px; height:11px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); }
+.game-card .rarity{ position:absolute; top:8px; right:8px; width:9px; height:9px; border-radius:50%; }
+.rarity.common{ background:#c7cdd6; }
+.rarity.rare{ background:#4aa3ff; }
+.rarity.legendary{ background:#c874ff; }
+.game-card .portrait{ width:70px; height:84px; display:block; }
+.game-card .cname{ font-family:var(--font-display); font-weight:600; font-size:13px; margin-top:2px; }
+
+.lanes-row{ display:flex; gap:10px; }
+.lane-btn{ flex:1; background:#232838; border:1.5px solid #333b50; border-radius:12px; color:var(--text); padding:12px 0; font-weight:700; font-size:13px; }
+.lane-btn.selected{ border-color:var(--you); color:var(--you-light); background:rgba(24,179,196,.12); }
+.skip-btn{ flex:none; background:transparent; border:1.5px solid #444; border-radius:12px; color:var(--muted); padding:12px 16px; font-weight:700; font-size:13px; }
+
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; } }
+</style>
+</head>
 <body>
 
-<h1>The Arena</h1>
+<div class="frame">
 
-<div id="rooms">
-    Loading rooms...
+    <!-- LOBBY -->
+    <section id="lobby" class="lobby">
+        <div class="brand">
+            <svg class="crest" viewBox="0 0 100 100" aria-hidden="true">
+                <polygon points="50,6 88,22 88,54 50,94 12,54 12,22" fill="#20242f" stroke="#3b3324" stroke-width="3"/>
+                <polygon points="50,6 88,22 88,54 50,94 12,54 12,22" fill="none" stroke="#ffc23c" stroke-width="2" opacity=".5"/>
+                <rect x="44" y="26" width="12" height="42" rx="4" fill="#dfe6ee" stroke="#241f18" stroke-width="2.5"/>
+                <rect x="34" y="40" width="32" height="8" rx="4" fill="#9aa4b0" stroke="#241f18" stroke-width="2.5"/>
+                <circle cx="50" cy="74" r="6" fill="#ffc23c"/>
+            </svg>
+            <h1>THE <em>ARENA</em></h1>
+            <p>Three lanes. Three towers. Three minutes.</p>
+        </div>
+
+        <div class="make-room">
+            <input id="roomName" placeholder="Name your room" maxlength="24">
+            <button id="createRoom" class="btn-primary">Create</button>
+        </div>
+
+        <p id="status" class="status"></p>
+
+        <div class="rooms-head">
+            <h2>Open rooms</h2>
+            <span class="count"><span id="roomCount">0 waiting</span></span>
+        </div>
+
+        <div id="rooms">Loading rooms...</div>
+    </section>
+
+    <!-- ARENA -->
+    <section id="game" class="arena hidden">
+        <div class="topbar">
+            <div class="side-tag"><span class="pip"></span>Opponent<span id="oppGold" class="opp-gold">0</span></div>
+            <div id="matchInfo" class="match-info">Turn 1</div>
+            <div class="gold-chip"><span class="coin"></span><span id="youGold">0</span></div>
+        </div>
+
+        <div class="board-wrap">
+            <svg id="board" viewBox="0 0 400 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+
+        <div class="tray">
+            <div class="tray-head">
+                <span id="phaseTag" class="phase-tag">Choose your play</span>
+                <svg class="timer-ring" viewBox="0 0 44 44">
+                    <circle class="track" cx="22" cy="22" r="18"/>
+                    <text id="phaseTime" x="22" y="22">5</text>
+                </svg>
+            </div>
+
+            <div id="cards" class="cards"></div>
+
+            <div class="lanes-row">
+                <button class="lane-btn" data-lane="lane1">Lane 1</button>
+                <button class="lane-btn" data-lane="lane2">Lane 2</button>
+                <button class="lane-btn" data-lane="lane3">Lane 3</button>
+                <button id="skipBtn" class="skip-btn">Skip</button>
+            </div>
+        </div>
+    </section>
+
 </div>
-
-<input id="roomName" placeholder="Room name">
-
-<button id="createRoom">
-    Create Room
-</button>
-
-<p id="status"></p>
-
-
-<div id="game" style="display:none;">
-
-    <h2>Battle</h2>
-
-    <div id="players"></div>
-
-    <h3>Your Cards</h3>
-
-    <div id="cards"></div>
-
-    <h3>Select Lane</h3>
-
-    <button class="laneButton" data-lane="lane1">
-        Lane 1
-    </button>
-
-    <button class="laneButton" data-lane="lane2">
-        Lane 2
-    </button>
-
-    <button class="laneButton" data-lane="lane3">
-        Lane 3
-    </button>
-
-
-    <p id="selectionStatus">
-        Choose a card and lane
-    </p>
-
-</div>
-
 
 <script type="module" src="main.js"></script>
-
 </body>
 </html>
