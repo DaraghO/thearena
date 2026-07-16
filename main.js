@@ -4,6 +4,8 @@ import {
     collection,
     onSnapshot,
     addDoc,
+    updateDoc,
+    doc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -27,9 +29,20 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
         let button = document.createElement("button");
 
-        button.innerText = room.name;
+button.innerText = "Join " + room.name;
 
-        roomsDiv.appendChild(button);
+button.onclick = async () => {
+
+await updateDoc(doc(db, "rooms", doc.id), {
+
+    player2: crypto.randomUUID(),
+
+    state: "playing"
+
+});
+};
+
+roomsDiv.appendChild(button);
 
     });
 
