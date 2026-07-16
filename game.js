@@ -60,6 +60,8 @@ async function createGame(roomRef)
             player1: {
 
                 gold: 10,
+                
+                hand: getRandomCards(3),
 
                 selectedCard: null,
 
@@ -71,6 +73,8 @@ async function createGame(roomRef)
             player2: {
 
                 gold: 10,
+                
+                hand: getRandomCards(3),
 
                 selectedCard: null,
 
