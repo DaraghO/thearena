@@ -225,13 +225,14 @@ export function setMatchTime(seconds)
 
 /* ---------- TOPBAR / HAND / STATUS ---------- */
 export function drawTopbar(game, self){
-    const opp = self === "player1" ? "player2" : "player1";
     const yg = document.getElementById("youGold");
-    const og = document.getElementById("oppGold");
     const mi = document.getElementById("matchInfo");
-    if(yg) yg.textContent = game[self].gold;
-    if(og) og.textContent = game[opp].gold;
-    if(mi) mi.textContent = "Turn " + game.turn;
+
+    if(yg)
+        yg.textContent = game[self].gold;
+
+    if(mi)
+        mi.textContent = "Turn " + game.turn;
 }
 
 export function drawHand(room, self, onSelect){
