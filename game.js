@@ -10,7 +10,7 @@ import {
 
 let selectedCard = null;
 let selectedLane = null;
-
+let laneButtonsSetup = false;
 
 export function startGame(roomId)
 {
@@ -199,9 +199,12 @@ let hand = room.game[playerKey].hand;
 
 function setupLaneButtons()
 {
-    const buttons = document.querySelectorAll(".laneButton");
+    if(laneButtonsSetup)
+        return;
 
-    buttons.forEach(button => {
+    laneButtonsSetup = true;
+
+    document.querySelectorAll(".laneButton").forEach(button => {
 
         button.onclick = () => {
 
