@@ -31,7 +31,7 @@ export function startGame(roomId)
             document.getElementById("roomName").style.display = "none";
 
             document.getElementById("game").style.display = "block";
-
+            setupLaneButtons();
             document.getElementById("players").innerText =
                 "Player 1: " + room.host +
                 "\nPlayer 2: " + room.player2;
@@ -194,16 +194,19 @@ function renderCards(room)
 
 
 
-document.querySelectorAll(".laneButton").forEach(button => {
+function setupLaneButtons()
+{
+    document.querySelectorAll(".laneButton").forEach(button => {
 
-    button.onclick = () => {
+        button.onclick = () => {
 
-        selectedLane = button.dataset.lane;
+            selectedLane = button.dataset.lane;
 
 
-        document.getElementById("selectionStatus").innerText =
-            "Selected lane: " + selectedLane;
+            document.getElementById("selectionStatus").innerText =
+                "Selected lane: " + selectedLane;
 
-    };
+        };
 
-});
+    });
+}
