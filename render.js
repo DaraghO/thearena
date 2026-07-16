@@ -254,16 +254,51 @@ export function setMatchTime(seconds)
     el.classList.toggle("urgent", safeSeconds <= 30 && safeSeconds > 0);
 }
 
+let previousGold = null;
+
 /* ---------- TOPBAR / HAND / STATUS ---------- */
 export function drawTopbar(game, self){
-    const yg = document.getElementById("youGold");
-    const mi = document.getElementById("matchInfo");
+    const goldElement = document.getElementById("youGold");
+    const goldChip = document.getElementById("playerGoldChip");
+    const goldChange = document.getElementById("goldChange");
+    const matchInfo = document.getElementById("matchInfo");
 
-    if(yg)
-        yg.textContent = game[self].gold;
+    const currentGold = game[self].gold;
 
-    if(mi)
-        mi.textContent = "Turn " + game.turn;
+    if(goldElement)
+        goldElement.textContent = currentGold;
+
+    if(
+        previousGold !== null &&
+        currentGold !== previousGold &&
+        goldChip &&
+        goldChange
+    ){
+        const difference = currentGold - previousGold;
+        const gained = difference > 0;
+
+        goldChip.classList.remove("gold-gain", "gold-spend");
+        goldChange.classList.remove("gain", "spend");
+
+        void goldChip.offsetWidth;
+        void goldChange.offsetWidth;
+
+        goldChange.textContent =
+            gained ? `+${difference}` : `${difference}`;
+
+        goldChip.classList.add(
+            gained ? "gold-gain" : "gold-spend"
+        );
+
+        goldChange.classList.add(
+            gained ? "gain" : "spend"
+        );
+    }
+
+    previousGold = currentGold;
+
+    if(matchInfo)
+        matchInfo.textContent = "Turn " + game.turn;
 }
 
 export function drawHand(room, self, onSelect){
