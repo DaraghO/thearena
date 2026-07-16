@@ -912,30 +912,40 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         </div>
 
         <div class="tray">
-           <div class="tray-head">
+
     <div class="tray-head">
-    <span id="phaseTag" class="phase-tag">Choose your play</span>
+        <span id="phaseTag" class="phase-tag">
+            Choose your play
+        </span>
 
-    <div class="tray-resources">
-        <button id="skipBtn" class="skip-btn">Skip</button>
+        <div class="tray-resources">
+            <button id="skipBtn" class="skip-btn">
+                Skip
+            </button>
 
-        <div id="playerGoldChip" class="gold-chip player-gold">
-            <span class="coin"></span>
-            <span id="youGold">0</span>
-            <span id="goldChange" class="gold-change"></span>
-            <span id="goldWarning" class="gold-warning">Not enough gold!</span>
+            <div id="playerGoldChip" class="gold-chip player-gold">
+                <span class="coin"></span>
+                <span id="youGold">0</span>
+                <span id="goldChange" class="gold-change"></span>
+                <span id="goldWarning" class="gold-warning">
+                    Not enough gold!
+                </span>
+            </div>
+
+            <svg
+                class="timer-ring"
+                viewBox="0 0 44 44"
+                aria-label="Phase time remaining"
+            >
+                <circle class="track" cx="22" cy="22" r="18"></circle>
+                <text id="phaseTime" x="22" y="22">5</text>
+            </svg>
         </div>
-
-        <svg class="timer-ring" viewBox="0 0 44 44" aria-label="Phase time remaining">
-            <circle class="track" cx="22" cy="22" r="18"></circle>
-            <text id="phaseTime" x="22" y="22">5</text>
-        </svg>
     </div>
+
+    <div id="cards" class="cards"></div>
+
 </div>
-
-            <div id="cards" class="cards"></div>
-
-        </div>
     </section>
 
 
