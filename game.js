@@ -1,10 +1,15 @@
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import { getRandomCards } from "./cards.js";
+
 import {
     doc,
     onSnapshot,
     updateDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+let selectedCard = null;
+let selectedLane = null;
 
 
 export function startGame(roomId)
@@ -36,7 +41,11 @@ export function startGame(roomId)
             if(!room.game)
             {
                 await createGame(roomRef);
+                return;
             }
+
+
+            renderCards(room);
         }
 
     });
@@ -60,7 +69,7 @@ async function createGame(roomRef)
             player1: {
 
                 gold: 10,
-                
+
                 hand: getRandomCards(3),
 
                 selectedCard: null,
@@ -73,7 +82,7 @@ async function createGame(roomRef)
             player2: {
 
                 gold: 10,
-                
+
                 hand: getRandomCards(3),
 
                 selectedCard: null,
@@ -128,3 +137,73 @@ async function createGame(roomRef)
 
     console.log("Game created");
 }
+
+
+
+function renderCards(room)
+{
+    const cardsDiv = document.getElementById("cards");
+
+    if(!cardsDiv)
+        return;
+
+
+    cardsDiv.innerHTML = "";
+
+
+    let playerKey;
+
+
+    if(auth.currentUser.uid === room.host)
+    {
+        playerKey = "player1";
+    }
+    else
+    {
+        playerKey = "player2";
+    }
+
+
+    let hand = room.game[playerKey].hand;
+
+
+    hand.forEach(card => {
+
+        let button = document.createElement("button");
+
+        button.innerText =
+            card.name +
+            "\nCost: " +
+            card.cost;
+
+
+        button.onclick = () => {
+
+            selectedCard = card.id;
+
+            document.getElementById("selectionStatus").innerText =
+                "Selected card: " + card.name;
+
+        };
+
+
+        cardsDiv.appendChild(button);
+
+    });
+}
+
+
+
+document.querySelectorAll(".laneButton").forEach(button => {
+
+    button.onclick = () => {
+
+        selectedLane = button.dataset.lane;
+
+
+        document.getElementById("selectionStatus").innerText =
+            "Selected lane: " + selectedLane;
+
+    };
+
+});
