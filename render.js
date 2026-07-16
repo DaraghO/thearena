@@ -373,3 +373,30 @@ export function hideResult(){
     const el = document.getElementById("result");
     if(el) el.classList.add("hidden");
 }
+
+
+export function setReturnLobbyHandler(onReturn){
+    const button = document.getElementById("returnLobbyBtn");
+
+    if(button)
+        button.onclick = onReturn;
+}
+
+
+export function showPlayerLeft(onReturn){
+    const overlay = document.getElementById("playerLeftOverlay");
+
+    if(!overlay)
+        return;
+
+    overlay.onclick = onReturn;
+    overlay.classList.remove("hidden");
+}
+
+
+export function hidePlayerLeft(){
+    const overlay = document.getElementById("playerLeftOverlay");
+
+    if(overlay)
+        overlay.classList.add("hidden");
+}
