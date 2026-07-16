@@ -3,7 +3,8 @@ import { getRandomUnitCards, cards } from "./cards.js";
 import { resolveBattle, BATTLE_SECONDS, DT } from "./simulation.js";
 import {
     renderBoard, drawTopbar, drawHand, setSelectedLane,
-    setPhaseTag, setPhaseTime, showResult, hideResult
+    setPhaseTag, setPhaseTime, setTrayLocked, showBanner,
+    showResult, hideResult
 } from "./render.js";
 
 import {
@@ -24,6 +25,7 @@ let schedTag = null;      // host: which phase instance we've scheduled
 let hostTimer = null;
 let replayTag = null;     // client: which battle we're replaying
 let replayRaf = null;
+let lastPhase = null;     // client: to flash a banner only on change
 
 function self(){ return auth.currentUser.uid === latestRoom.host ? "player1" : "player2"; }
 function isHost(){ return auth.currentUser.uid === latestRoom.host; }
@@ -89,18 +91,26 @@ function render(room){
     const g = room.game, me = self();
     drawTopbar(g, me);
 
+    if(g.phase !== lastPhase){
+        if(g.phase === "selection") showBanner("Rest Phase!", "rest");
+        else if(g.phase === "battle") showBanner("Battle Phase!", "battle");
+        lastPhase = g.phase;
+    }
+
     if(g.phase === "ended"){
         stopReplay();
+        setTrayLocked(true);
         renderBoard(g.towers, flatten(g.battlefield, "idle"), me);
         drawHand(room, me, ()=>{});
-        setPhaseTag("Match over");
+        setPhaseTag("Match over", "over");
         showResult(g.winner === me);
         return;
     }
     hideResult();
 
     if(g.phase === "battle"){
-        setPhaseTag("Battle");
+        setTrayLocked(true);
+        setPhaseTag("Battle Phase", "battle");
         drawHand(room, me, ()=>{});          // next hand, not interactive this phase
         startReplay(g.battle, me);
         return;
@@ -108,10 +118,11 @@ function render(room){
 
     // selection
     stopReplay();
+    setTrayLocked(false);
     renderBoard(g.towers, flatten(g.battlefield, "idle"), me);
     drawHand(room, me, (cardId) => writeSelection("selectedCard", cardId));
     setSelectedLane(g[me].selectedLane);
-    setPhaseTag("Choose your play");
+    setPhaseTag("Rest Phase", "rest");
 }
 
 /* ---------------- BATTLE REPLAY (both clients) ---------------- */
@@ -162,8 +173,15 @@ function hostSchedule(g){
 function topUpHand(hand, playedId){
     if(!playedId) return hand;
     const i = hand.findIndex(c => c.id === playedId);
+    if(i < 0) return hand;
     const next = hand.slice();
-    if(i >= 0){ next.splice(i, 1); next.push(getRandomUnitCards(1)[0]); }
+    next.splice(i, 1);
+    const have = new Set(next.map(c => c.id));
+    const options = cards.filter(c => c.type === "unit" && !have.has(c.id));
+    const pick = options.length
+        ? options[Math.floor(Math.random() * options.length)]
+        : getRandomUnitCards(1)[0];
+    next.push(pick);
     return next;
 }
 
