@@ -64,8 +64,16 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .arena{ flex:1; display:flex; flex-direction:column; }
 .topbar{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px 6px; }
 .side-tag{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:13px; }
-.side-tag .pip{ width:12px; height:12px; border-radius:4px; background:var(--enemy); }
-.side-tag .opp-gold{ color:var(--gold); font-weight:700; margin-left:2px; }
+.side-tag .pip{
+    width:12px;
+    height:12px;
+    border-radius:4px;
+    background:var(--enemy);
+}
+
+.side-tag.you-tag .pip{
+    background:var(--you);
+}
 .match-center{
     display:flex;
     flex-direction:column;
@@ -101,7 +109,13 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 }
 .gold-chip{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,194,60,.12); border:1px solid rgba(255,194,60,.35); color:var(--gold); border-radius:999px; padding:5px 12px 5px 8px; font-weight:700; font-size:14px; }
 .gold-chip .coin{ width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); border:1.5px solid #b9821a; }
-
+.player-gold{
+    margin-left:auto;
+    margin-right:10px;
+    padding:7px 14px 7px 9px;
+    font-size:16px;
+    flex:none;
+}
 .board-wrap{ flex:1; padding:6px 8px 2px; min-height:0; }
 #board{ width:100%; height:100%; display:block; }
 
@@ -248,12 +262,12 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     <!-- ARENA -->
     <section id="game" class="arena hidden">
         <div class="topbar">
-            <div class="side-tag"><span class="pip"></span>Opponent<span id="oppGold" class="opp-gold">0</span></div>
+<div class="side-tag"><span class="pip"></span>Opponent</div>
             <div class="match-center">
     <div id="matchClock" class="match-clock">3:00</div>
     <div id="matchInfo" class="match-info">Turn 1</div>
 </div>
-            <div class="gold-chip"><span class="coin"></span><span id="youGold">0</span></div>
+<div class="side-tag you-tag"><span class="pip"></span>You</div>
         </div>
 
         <div class="board-wrap">
@@ -261,12 +275,15 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         </div>
 
         <div class="tray">
-            <div class="tray-head">
-                <span id="phaseTag" class="phase-tag">Choose your play</span>
-                <svg class="timer-ring" viewBox="0 0 44 44">
-                    <circle class="track" cx="22" cy="22" r="18"/>
-                    <text id="phaseTime" x="22" y="22">5</text>
-                </svg>
+           <div class="tray-head">
+    <span id="phaseTag" class="phase-tag">Choose your play</span>
+
+    <div class="gold-chip player-gold">
+        <span class="coin"></span>
+        <span id="youGold">0</span>
+    </div>
+
+    <svg class="timer-ring" viewBox="0 0 44 44">
             </div>
 
             <div id="cards" class="cards"></div>
