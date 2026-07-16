@@ -311,6 +311,127 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .timer-ring .track{ fill:none; stroke:#2a2f3d; stroke-width:5; }
 .timer-ring text{ fill:var(--text); font-family:var(--font-display); font-weight:700; font-size:15px; text-anchor:middle; dominant-baseline:central; }
 
+
+.tray-resources{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-left:auto;
+}
+
+.player-gold{
+    position:relative;
+    margin:0;
+    min-width:64px;
+    justify-content:center;
+}
+
+.gold-change{
+    position:absolute;
+    left:50%;
+    top:-6px;
+    z-index:3;
+    pointer-events:none;
+    opacity:0;
+    font-family:var(--font-display);
+    font-size:16px;
+    font-weight:700;
+    text-shadow:0 2px 3px rgba(0,0,0,.8);
+    transform:translate(-50%, 0);
+}
+
+.gold-change.gain{
+    color:#71e69b;
+    animation:goldGainFloat .9s ease-out forwards;
+}
+
+.gold-change.spend{
+    color:#ff7e68;
+    animation:goldSpendFloat .9s ease-out forwards;
+}
+
+.player-gold.gold-gain{
+    animation:goldGainChip .55s ease-out;
+}
+
+.player-gold.gold-spend{
+    animation:goldSpendChip .55s ease-out;
+}
+
+@keyframes goldGainFloat{
+    0%{
+        opacity:0;
+        transform:translate(-50%, 5px) scale(.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:translate(-50%, -3px) scale(1.15);
+    }
+
+    100%{
+        opacity:0;
+        transform:translate(-50%, -25px) scale(1);
+    }
+}
+
+@keyframes goldSpendFloat{
+    0%{
+        opacity:0;
+        transform:translate(-50%, -5px) scale(.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:translate(-50%, 2px) scale(1.15);
+    }
+
+    100%{
+        opacity:0;
+        transform:translate(-50%, 22px) scale(1);
+    }
+}
+
+@keyframes goldGainChip{
+    0%,100%{
+        transform:scale(1);
+        filter:none;
+    }
+
+    35%{
+        transform:scale(1.12);
+        filter:drop-shadow(0 0 7px rgba(92,208,138,.8));
+        border-color:#5cd08a;
+        color:#71e69b;
+    }
+}
+
+@keyframes goldSpendChip{
+    0%,100%{
+        transform:translateX(0);
+        border-color:rgba(255,194,60,.35);
+        color:var(--gold);
+    }
+
+    20%{
+        transform:translateX(-4px);
+    }
+
+    40%{
+        transform:translateX(4px);
+        border-color:var(--enemy);
+        color:#ff7e68;
+    }
+
+    60%{
+        transform:translateX(-3px);
+    }
+
+    80%{
+        transform:translateX(2px);
+    }
+}
+    
 .cards{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px; }
 .game-card{
     position:relative;
@@ -546,13 +667,19 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
            <div class="tray-head">
     <span id="phaseTag" class="phase-tag">Choose your play</span>
 
-    <div class="gold-chip player-gold">
-        <span class="coin"></span>
-        <span id="youGold">0</span>
-    </div>
+    <div class="tray-resources">
+        <div id="playerGoldChip" class="gold-chip player-gold">
+            <span class="coin"></span>
+            <span id="youGold">0</span>
+            <span id="goldChange" class="gold-change"></span>
+        </div>
 
-    <svg class="timer-ring" viewBox="0 0 44 44">
-            </div>
+        <svg class="timer-ring" viewBox="0 0 44 44" aria-label="Phase time remaining">
+            <circle class="track" cx="22" cy="22" r="18"></circle>
+            <text id="phaseTime" x="22" y="22">5</text>
+        </svg>
+    </div>
+</div>
 
             <div id="cards" class="cards"></div>
 
