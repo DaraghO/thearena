@@ -206,6 +206,23 @@ export function drawBattleFrame(a, b, t, self){
 
 export function resetBattle(){ scene = null; }
 
+export function setMatchTime(seconds)
+{
+    const el = document.getElementById("matchClock");
+
+    if(!el)
+        return;
+
+    const safeSeconds = Math.max(0, Math.ceil(seconds));
+    const minutes = Math.floor(safeSeconds / 60);
+    const remainingSeconds = safeSeconds % 60;
+
+    el.textContent =
+        minutes + ":" + remainingSeconds.toString().padStart(2, "0");
+
+    el.classList.toggle("urgent", safeSeconds <= 30 && safeSeconds > 0);
+}
+
 /* ---------- TOPBAR / HAND / STATUS ---------- */
 export function drawTopbar(game, self){
     const opp = self === "player1" ? "player2" : "player1";
