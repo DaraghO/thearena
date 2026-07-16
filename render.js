@@ -46,7 +46,6 @@ function fallbackRig(team, state){
 }
 
 const RIGS = { knight: knightRig };
-
 function rigMarkup(cardId, team, state){
     return (RIGS[cardId] || fallbackRig)(team, state);
 }
@@ -56,21 +55,30 @@ const LANE_X = { lane1:110, lane2:200, lane3:290 };
 const Y_NEAR = 440, Y_FAR = 180;
 const TOWER_MAX = { king:3000, other:1000 };
 
-// x is the canonical lane coord (0 = player1 tower, 1 = player2 tower).
-// Each client shows itself at the bottom, so player2 flips the axis.
 function displayX(x, self){ return self === "player1" ? x : 1 - x; }
+function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+function hpColor(r){ return r > 0.5 ? "#5cd08a" : r > 0.25 ? "#ffc23c" : "#ef5a3c"; }
 
-function placedTroop(troop, self){
-    const dx = displayX(troop.x, self);
+function placeTroop(lane, x, self){
+    const dx = displayX(x, self);
     const y = Y_NEAR - (Y_NEAR - Y_FAR) * dx;
-    const scale = 0.5 + 0.22 * (1 - dx);
-    const team = troop.owner === self ? "you" : "enemy";
-    const px = LANE_X[troop.lane] - 50 * scale;
-    const py = y - 118 * scale;
-    return `<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${scale.toFixed(3)})">${rigMarkup(troop.cardId, team, troop.state)}</g>`;
+    const sc = 0.5 + 0.22 * (1 - dx);
+    return { tx: LANE_X[lane] - 50*sc, ty: y - 118*sc, sc };
 }
 
-function hpColor(r){ return r > 0.5 ? "#5cd08a" : r > 0.25 ? "#ffc23c" : "#ef5a3c"; }
+const HP_W = 36, HP_X = 32, HP_Y = -4, HP_H = 5;
+function troopHpBar(ratio){
+    const r = clamp01(ratio == null ? 1 : ratio);
+    return `<rect x="${HP_X}" y="${HP_Y}" width="${HP_W}" height="${HP_H}" rx="2.5" fill="#00000066"/>
+            <rect class="hpfill" x="${HP_X}" y="${HP_Y}" width="${(HP_W*r).toFixed(1)}" height="${HP_H}" rx="2.5" fill="${hpColor(r)}"/>`;
+}
+function updateHp(el, ratio){
+    const f = el.querySelector(".hpfill");
+    if(!f) return;
+    const r = clamp01(ratio == null ? 1 : ratio);
+    f.setAttribute("width", (HP_W*r).toFixed(1));
+    f.setAttribute("fill", hpColor(r));
+}
 
 function tower(cx, baseY, w, h, team, king, ratio){
     const x = cx - w/2, y = baseY - h;
@@ -87,7 +95,7 @@ function tower(cx, baseY, w, h, team, king, ratio){
             crenel += `<polygon points="${bx},${y-dy} ${bx+cw},${y-dy} ${bx+cw+dx*0.5},${y-dy-dy*0.5} ${bx+dx*0.5},${y-dy-dy*0.5}" fill="${light}" stroke="var(--ink)" stroke-width="2"/>`;
         }
     }
-    const r = Math.max(0, Math.min(1, ratio));
+    const r = clamp01(ratio);
     const bw = w+dx, bx = x, by = y-dy-12;
     const hp = `<rect x="${bx}" y="${by}" width="${bw}" height="5" rx="2.5" fill="#00000055"/>
                 <rect x="${bx}" y="${by}" width="${(bw*r).toFixed(1)}" height="5" rx="2.5" fill="${hpColor(r)}"/>`;
@@ -98,36 +106,107 @@ function tower(cx, baseY, w, h, team, king, ratio){
         ${crenel}${hp}</g>`;
 }
 
-// bottom row = self, top row = opponent
-export function renderBoard(towers, troops, self){
-    const board = document.getElementById("board");
-    if(!board) return;
+const FIELD = `
+    <polygon points="60,70 340,70 380,520 20,520" fill="var(--sand)" stroke="var(--rim)" stroke-width="4"/>
+    <polygon points="60,70 340,70 380,520 20,520" fill="none" stroke="var(--sand-edge)" stroke-width="2" opacity=".6"/>`;
+const LANES = `
+    <line x1="153" y1="70" x2="140" y2="520" stroke="var(--sand-line)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+    <line x1="247" y1="70" x2="260" y2="520" stroke="var(--sand-line)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+    <line x1="20" y1="295" x2="380" y2="295" stroke="var(--sand-line)" stroke-width="2" opacity=".4"/>`;
+
+function towersMarkup(towers, self){
     const opp = self === "player1" ? "player2" : "player1";
     const me = towers[self], you = towers[opp];
-
-    const field = `
-        <polygon points="60,70 340,70 380,520 20,520" fill="var(--sand)" stroke="var(--rim)" stroke-width="4"/>
-        <polygon points="60,70 340,70 380,520 20,520" fill="none" stroke="var(--sand-edge)" stroke-width="2" opacity=".6"/>`;
-    const lanes = `
-        <line x1="153" y1="70" x2="140" y2="520" stroke="var(--sand-line)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
-        <line x1="247" y1="70" x2="260" y2="520" stroke="var(--sand-line)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
-        <line x1="20" y1="295" x2="380" y2="295" stroke="var(--sand-line)" stroke-width="2" opacity=".4"/>`;
-
-    const enemyTowers =
+    return (
         tower(200, 96, 44, 34, "enemy", true,  you.king  / TOWER_MAX.king) +
         tower(110,150, 40, 30, "enemy", false, you.left  / TOWER_MAX.other) +
         tower(200,150, 40, 30, "enemy", false, you.middle/ TOWER_MAX.other) +
-        tower(290,150, 40, 30, "enemy", false, you.right / TOWER_MAX.other);
-    const youTowers =
+        tower(290,150, 40, 30, "enemy", false, you.right / TOWER_MAX.other) +
         tower(105,470, 50, 38, "you", false, me.left  / TOWER_MAX.other) +
         tower(200,470, 50, 38, "you", false, me.middle/ TOWER_MAX.other) +
         tower(295,470, 50, 38, "you", false, me.right / TOWER_MAX.other) +
-        tower(200,516, 56, 44, "you", true,  me.king  / TOWER_MAX.king);
-
-    const troopMarkup = troops.map(t => placedTroop(t, self)).join("");
-    board.innerHTML = field + lanes + enemyTowers + youTowers + troopMarkup;
+        tower(200,516, 56, 44, "you", true,  me.king  / TOWER_MAX.king)
+    );
 }
 
+function placedTroop(troop, self){
+    const team = troop.owner === self ? "you" : "enemy";
+    const { tx, ty, sc } = placeTroop(troop.lane, troop.x, self);
+    const hp = troop.hpRatio != null ? troopHpBar(troop.hpRatio) : "";
+    return `<g transform="translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})">${rigMarkup(troop.cardId, team, troop.state)}${hp}</g>`;
+}
+
+// STATIC full redraw: selection and ended (troops don't move, so this is fine)
+export function renderBoard(towers, troops, self){
+    const board = document.getElementById("board");
+    if(!board) return;
+    board.innerHTML = FIELD + LANES + towersMarkup(towers, self)
+        + troops.map(t => placedTroop(t, self)).join("");
+}
+
+/* ---------- LIVE BATTLE RENDER ----------
+   Build each troop once, then update transform + state + hp per frame.
+   This is what lets the CSS walk/attack animations actually play. */
+let scene = null;
+
+export function initBattle(self){
+    const board = document.getElementById("board");
+    if(!board) return;
+    board.innerHTML = FIELD + LANES + `<g class="tower-layer"></g><g class="troop-layer"></g>`;
+    scene = { els:new Map(), towersKey:"" };
+}
+
+export function drawBattleFrame(a, b, t, self){
+    if(!scene) return;
+    const board = document.getElementById("board");
+    if(!board) return;
+
+    const key = JSON.stringify(a.towers);
+    if(key !== scene.towersKey){
+        board.querySelector(".tower-layer").innerHTML = towersMarkup(a.towers, self);
+        scene.towersKey = key;
+    }
+
+    const layer = board.querySelector(".troop-layer");
+    const bMap = {};
+    if(b) b.troops.forEach(tr => bMap[tr.id] = tr);
+
+    const seen = new Set();
+    a.troops.forEach(tr => {
+        seen.add(tr.id);
+        const nb = bMap[tr.id];
+        const x = nb ? tr.x + (nb.x - tr.x) * t : tr.x;
+        const team = tr.owner === self ? "you" : "enemy";
+
+        let el = scene.els.get(tr.id);
+        if(!el){
+            layer.insertAdjacentHTML("beforeend",
+                `<g data-tid="${tr.id}">${rigMarkup(tr.cardId, team, tr.state)}${troopHpBar(tr.hpRatio)}</g>`);
+            el = layer.querySelector(`[data-tid="${tr.id}"]`);
+            scene.els.set(tr.id, el);
+            el.dataset.state = tr.state;
+        }
+        if(el.dataset.state !== tr.state){
+            const rig = el.querySelector(".rig");
+            if(rig){
+                rig.classList.remove("state-walk","state-attack","state-die","state-idle","state-pose");
+                rig.classList.add("state-" + tr.state);
+            }
+            el.dataset.state = tr.state;
+        }
+        const { tx, ty, sc } = placeTroop(tr.lane, x, self);
+        el.setAttribute("transform", `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})`);
+        updateHp(el, tr.hpRatio);
+    });
+
+    for(const [id, el] of scene.els){
+        if(!seen.has(id)){ el.remove(); scene.els.delete(id); }
+    }
+}
+
+export function resetBattle(){ scene = null; }
+
+/* ---------- TOPBAR / HAND / STATUS ---------- */
 export function drawTopbar(game, self){
     const opp = self === "player1" ? "player2" : "player1";
     const yg = document.getElementById("youGold");
@@ -143,17 +222,17 @@ export function drawHand(room, self, onSelect){
     const wrap = document.getElementById("cards");
     if(!wrap) return;
     const hand = g[self].hand || [];
-    const chosen = g[self].selectedCard;
+    const chosen = g[self].selectedIndex;
     wrap.innerHTML = "";
     hand.forEach((card, i) => {
         const el = document.createElement("button");
-        el.className = "game-card" + (chosen === card.id ? " selected" : "");
+        el.className = "game-card" + (chosen === i ? " selected" : "");
         el.innerHTML = `
             <span class="cost"><span class="coin"></span>${card.cost}</span>
             <span class="rarity ${card.rarity}"></span>
             <svg class="portrait" viewBox="0 0 100 120">${rigMarkup(card.id,"you","pose")}</svg>
             <span class="cname">${card.name}</span>`;
-        el.onclick = () => onSelect(card.id, i);
+        el.onclick = () => onSelect(i);
         wrap.appendChild(el);
     });
 }
@@ -193,6 +272,7 @@ export function showBanner(text, kind){
     clearTimeout(el._t);
     el._t = setTimeout(() => { el.className = "hidden"; }, 1700);
 }
+
 export function showResult(youWon){
     const el = document.getElementById("result");
     if(!el) return;
