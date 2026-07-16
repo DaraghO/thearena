@@ -233,7 +233,75 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     font-size:13px;
 }
 
+.result-actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:22px;
+}
 
+.result-actions .rematch-btn{
+    margin-top:0;
+}
+
+.return-lobby-btn{
+    width:100%;
+    background:transparent;
+    color:var(--text);
+    border:1.5px solid #555d6d;
+    border-radius:12px;
+    padding:13px 22px;
+    font-family:var(--font-display);
+    font-size:16px;
+    font-weight:700;
+}
+
+.return-lobby-btn:active{
+    background:#303644;
+}
+
+.player-left-overlay{
+    position:fixed;
+    inset:0;
+    z-index:30;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    background:rgba(10,12,20,.82);
+    backdrop-filter:blur(4px);
+    cursor:pointer;
+}
+
+.player-left-card{
+    width:100%;
+    max-width:340px;
+    padding:34px 28px;
+    background:var(--card);
+    border:2px solid var(--enemy-dark);
+    border-radius:20px;
+    text-align:center;
+    box-shadow:0 18px 50px rgba(0,0,0,.5);
+}
+
+.player-left-title{
+    color:var(--enemy-light);
+    font-family:var(--font-display);
+    font-size:34px;
+    font-weight:700;
+}
+
+.player-left-text{
+    margin-top:10px;
+    color:var(--text);
+    font-size:16px;
+}
+
+.player-left-hint{
+    margin-top:20px;
+    color:var(--muted);
+    font-size:13px;
+}
     
 /* ---------- TRAY ---------- */
 .tray{ background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 30%); padding:8px 14px 16px; border-top:1px solid #222738; }
@@ -501,11 +569,27 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         <div class="result-text">Victory</div>
         <div id="resultSub" class="result-sub"></div>
 
-        <button id="rematchBtn" class="rematch-btn">
-            Play Again
-        </button>
+        <div class="result-actions">
+    <button id="rematchBtn" class="rematch-btn">
+        Play Again
+    </button>
 
-        <div id="rematchStatus" class="rematch-status"></div>
+    <button id="returnLobbyBtn" class="return-lobby-btn">
+        Return to Lobby
+    </button>
+</div>
+<div id="playerLeftOverlay" class="player-left-overlay hidden">
+    <div class="player-left-card">
+        <div class="player-left-title">Player Left</div>
+        <div class="player-left-text">
+            Your opponent left the room.
+        </div>
+        <div class="player-left-hint">
+            Click anywhere to return to the lobby
+        </div>
+    </div>
+</div>
+<div id="rematchStatus" class="rematch-status"></div>
     </div>
 </div>
     <div id="phaseBanner" class="hidden"><span></span></div>
