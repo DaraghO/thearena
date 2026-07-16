@@ -11,8 +11,10 @@ export const cards = [
     { id:"dragon",  name:"Dragon",  type:"unit", rarity:"legendary",
       cost:10, health:1200, damage:150, speed:3, range:4, detectRange:6, attackSpeed:2 }
 ];
-// distinct draw: never hands you the same card twice
+// fresh random draw each rest phase; duplicates allowed (variety with a small pool)
 export function getRandomUnitCards(amount = 3){
-    const pool = cards.filter(c => c.type === "unit").sort(() => Math.random() - 0.5);
-    return pool.slice(0, Math.min(amount, pool.length));
+    const units = cards.filter(c => c.type === "unit");
+    const out = [];
+    for(let i=0;i<amount;i++) out.push(units[Math.floor(Math.random()*units.length)]);
+    return out;
 }
