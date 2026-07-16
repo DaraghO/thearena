@@ -6,7 +6,8 @@ import {
     drawTopbar, drawHand, setSelectedLane,
     setPhaseTag, setPhaseTime, setMatchTime,
     setTrayLocked, showBanner,
-    showResult, hideResult
+    showResult, hideResult,
+    setReturnLobbyHandler, showPlayerLeft, hidePlayerLeft
 } from "./render.js";
 
 import {
@@ -38,7 +39,20 @@ export function startGame(id){
         if(!room) return;
         latestRoom = room;
 
-        if(room.state !== "playing") return;
+if(room.state === "player-left"){
+    const leavingUid = room.leftBy;
+
+    if(leavingUid !== auth.currentUser.uid){
+        showPlayerLeft(returnToLobby);
+    }
+
+    return;
+}
+
+if(room.state !== "playing")
+    return;
+
+hidePlayerLeft();
 
         document.getElementById("lobby").classList.add("hidden");
         document.getElementById("game").classList.remove("hidden");
@@ -439,4 +453,24 @@ function setupControls(){
             });
         };
     }
+    setReturnLobbyHandler(leaveRoom);
+}
+
+
+async function leaveRoom(){
+    if(!latestRoom)
+        return;
+
+    await updateDoc(ref(), {
+        state: "player-left",
+        leftBy: auth.currentUser.uid,
+        leftAt: Date.now()
+    });
+
+    returnToLobby();
+}
+
+
+function returnToLobby(){
+    window.location.reload();
 }
