@@ -196,6 +196,44 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 #result .result-text{ font-family:var(--font-display); font-weight:700; font-size:40px; color:var(--enemy); }
 #result.win .result-text{ color:var(--you-light); }
 #result .result-sub{ color:var(--muted); font-size:14px; margin-top:6px; }
+
+
+
+    .rematch-btn{
+    width:100%;
+    margin-top:22px;
+    background:var(--you);
+    color:#062a2e;
+    border:none;
+    border-radius:12px;
+    padding:13px 22px;
+    font-family:var(--font-display);
+    font-size:17px;
+    font-weight:700;
+    box-shadow:0 4px 0 var(--you-dark);
+}
+
+.rematch-btn:active{
+    transform:translateY(3px);
+    box-shadow:0 1px 0 var(--you-dark);
+}
+
+.rematch-btn:disabled{
+    background:#3a414e;
+    color:var(--muted);
+    box-shadow:none;
+    cursor:default;
+    transform:none;
+}
+
+.rematch-status{
+    min-height:18px;
+    margin-top:12px;
+    color:var(--muted);
+    font-size:13px;
+}
+
+
     
 /* ---------- TRAY ---------- */
 .tray{ background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 30%); padding:8px 14px 16px; border-top:1px solid #222738; }
@@ -461,9 +499,15 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 <div id="result" class="hidden">
     <div class="result-card">
         <div class="result-text">Victory</div>
-        <div class="result-sub">Refresh to play again</div>
+        <div id="resultSub" class="result-sub"></div>
+
+        <button id="rematchBtn" class="rematch-btn">
+            Play Again
+        </button>
+
+        <div id="rematchStatus" class="rematch-status"></div>
     </div>
-</div> 
+</div>
     <div id="phaseBanner" class="hidden"><span></span></div>
 </div>
 
