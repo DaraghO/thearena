@@ -110,9 +110,40 @@ const FIELD = `
     <polygon points="60,70 340,70 380,520 20,520" fill="var(--sand)" stroke="var(--rim)" stroke-width="4"/>
     <polygon points="60,70 340,70 380,520 20,520" fill="none" stroke="var(--sand-edge)" stroke-width="2" opacity=".6"/>`;
 const LANES = `
-    <line x1="153" y1="70" x2="140" y2="520" stroke="var(--sand-line)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
-    <line x1="247" y1="70" x2="260" y2="520" stroke="var(--sand-line)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
-    <line x1="20" y1="295" x2="380" y2="295" stroke="var(--sand-line)" stroke-width="2" opacity=".4"/>`;
+    <g class="lane-select-layer">
+        <polygon
+            class="lane-select"
+            data-lane="lane1"
+            points="60,70 153,70 140,520 20,520"
+        />
+
+        <polygon
+            class="lane-select"
+            data-lane="lane2"
+            points="153,70 247,70 260,520 140,520"
+        />
+
+        <polygon
+            class="lane-select"
+            data-lane="lane3"
+            points="247,70 340,70 380,520 260,520"
+        />
+    </g>
+
+    <line x1="153" y1="70" x2="140" y2="520"
+          stroke="var(--sand-line)" stroke-width="3"
+          stroke-dasharray="2 10" stroke-linecap="round"
+          pointer-events="none"/>
+
+    <line x1="247" y1="70" x2="260" y2="520"
+          stroke="var(--sand-line)" stroke-width="3"
+          stroke-dasharray="2 10" stroke-linecap="round"
+          pointer-events="none"/>
+
+    <line x1="20" y1="295" x2="380" y2="295"
+          stroke="var(--sand-line)" stroke-width="2"
+          opacity=".4" pointer-events="none"/>
+`;
 
 function towersMarkup(towers, self){
     const opp = self === "player1" ? "player2" : "player1";
@@ -258,8 +289,9 @@ export function drawHand(room, self, onSelect){
 }
 
 export function setSelectedLane(lane){
-    document.querySelectorAll(".lane-btn").forEach(b =>
-        b.classList.toggle("selected", b.dataset.lane === lane));
+    document.querySelectorAll(".lane-select").forEach(el => {
+        el.classList.toggle("selected", el.dataset.lane === lane);
+    });
 }
 
 export function setPhaseTag(text, kind){
