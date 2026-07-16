@@ -196,12 +196,13 @@ function renderCards(room)
 
 function setupLaneButtons()
 {
-    document.querySelectorAll(".laneButton").forEach(button => {
+    const buttons = document.querySelectorAll(".laneButton");
+
+    buttons.forEach(button => {
 
         button.onclick = () => {
 
             selectedLane = button.dataset.lane;
-
 
             document.getElementById("selectionStatus").innerText =
                 "Selected lane: " + selectedLane;
