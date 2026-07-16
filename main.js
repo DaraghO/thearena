@@ -23,28 +23,29 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
     roomsDiv.innerHTML = "";
 
-    snapshot.forEach((doc)=>{
+    snapshot.forEach((roomDoc)=>{
 
-        let room = doc.data();
+    let room = roomDoc.data();
 
-        let button = document.createElement("button");
+    let button = document.createElement("button");
 
-button.innerText = "Join " + room.name;
+    button.innerText = "Join " + room.name;
 
-button.onclick = async () => {
+    button.onclick = async () => {
 
-await updateDoc(doc(db, "rooms", doc.id), {
+        await updateDoc(doc(db, "rooms", roomDoc.id), {
 
-    player2: crypto.randomUUID(),
+            player2: crypto.randomUUID(),
 
-    state: "playing"
+            state: "playing"
+
+        });
+
+    };
+
+    roomsDiv.appendChild(button);
 
 });
-};
-
-roomsDiv.appendChild(button);
-
-    });
 
 });
 
