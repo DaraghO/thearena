@@ -43,7 +43,7 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
     currentRoomId = roomDoc.id;
 
     document.getElementById("status").innerText =
-        "Joined room: " + roomDoc.id;
+    "Joined room: " + room.name;
 
 };
 
@@ -60,8 +60,7 @@ createButton.onclick = async ()=>{
 
     const roomRef = await addDoc(collection(db, "rooms"), {
 
-    name: "Room " + Math.floor(Math.random()*10000),
-
+    name: document.getElementById("roomName").value || "Unnamed Room",
     host: auth.currentUser.uid,
 
     player2: null,
@@ -75,6 +74,6 @@ createButton.onclick = async ()=>{
 currentRoomId = roomRef.id;
 
 document.getElementById("status").innerText =
-    "You created room: " + roomRef.id;
+    "You created: " + document.getElementById("roomName").value;
 
 };
