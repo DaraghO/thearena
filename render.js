@@ -375,8 +375,29 @@ function tower(
 }
 
 const FIELD = `
+    <defs>
+        <linearGradient
+            id="towerBaseGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+        >
+            <stop
+                offset="0%"
+                stop-color="#4c5a72"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#263146"
+            />
+        </linearGradient>
+    </defs>
+
     <polygon points="60,70 340,70 380,520 20,520" fill="var(--sand)" stroke="var(--rim)" stroke-width="4"/>
     <polygon points="60,70 340,70 380,520 20,520" fill="none" stroke="var(--sand-edge)" stroke-width="2" opacity=".6"/>`;
+
 const LANES = `
     <g class="lane-select-layer">
         <polygon
