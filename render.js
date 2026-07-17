@@ -112,8 +112,12 @@ function tower(
     if(currentHp > 0 && ratio <= 0.3)
         stateClasses.push("tower-critical");
 
-    if(currentHp <= 0)
+    if(currentHp <= 0){
+    if(damage > 0)
         stateClasses.push("tower-destroyed");
+    else
+        stateClasses.push("tower-gone");
+}
 
     const hpWidth = king ? 78 : 66;
     const hpX = cx - hpWidth / 2;
