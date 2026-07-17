@@ -8,6 +8,15 @@ export const DT = 0.1;
 const TILES = 18;          // lane length in tiles; tune game feel here
 const T = 1 / TILES;
 
+const PLAYER1_LANE_TOWER_X = 1;
+const PLAYER1_KING_TOWER_X = 1.18;
+
+const PLAYER2_LANE_TOWER_X = 0;
+const PLAYER2_KING_TOWER_X = -0.18;
+
+const MIN_BATTLE_X = PLAYER2_KING_TOWER_X;
+const MAX_BATTLE_X = PLAYER1_KING_TOWER_X;
+
 const KILL_GOLD = { common:1, rare:3, legendary:5 };
 const GOLD_CAP = 25;
 const PASSIVE_GOLD = 2;
@@ -117,28 +126,71 @@ export function resolveBattle(game, requestedDuration = BATTLE_SECONDS){
                     return;
                 }
 
-                const goal = t.owner === "player1" ? 1 : 0;
-                const distGoal = Math.abs(goal - t.x);
-                const laneTower = LANE_TOWER[lane];
-                const towerAlive = towers[foe][laneTower] > 0;
+                const laneTower =
+    LANE_TOWER[lane];
 
-                if(distGoal <= atkR){
-                    t.state = "attack";
-                    if(t.cd <= 0){
-                        t.cd = 1 / c.attackSpeed;
-                        if(towerAlive){
-                            towers[foe][laneTower] = Math.max(0, towers[foe][laneTower] - c.damage);
-                        } else {
-                            towers[foe].king = Math.max(0, towers[foe].king - c.damage);
-                            if(towers[foe].king <= 0) winner = t.owner;
-                        }
-                    }
-                } else {
-                    t.state = "walk";
-                    t.x += fwd * c.speed * T * DT;
-                    if(t.x < 0) t.x = 0;
-                    if(t.x > 1) t.x = 1;
-                }
+const towerAlive =
+    towers[foe][laneTower] > 0;
+
+const laneTowerGoal =
+    t.owner === "player1"
+        ? PLAYER1_LANE_TOWER_X
+        : PLAYER2_LANE_TOWER_X;
+
+const kingTowerGoal =
+    t.owner === "player1"
+        ? PLAYER1_KING_TOWER_X
+        : PLAYER2_KING_TOWER_X;
+
+const goal =
+    towerAlive
+        ? laneTowerGoal
+        : kingTowerGoal;
+
+const distGoal =
+    Math.abs(goal - t.x);
+
+if(distGoal <= atkR){
+    t.state = "attack";
+
+    if(t.cd <= 0){
+        t.cd = 1 / c.attackSpeed;
+
+        if(towerAlive){
+            towers[foe][laneTower] =
+                Math.max(
+                    0,
+                    towers[foe][laneTower] -
+                    c.damage
+                );
+        }
+        else{
+            towers[foe].king =
+                Math.max(
+                    0,
+                    towers[foe].king -
+                    c.damage
+                );
+
+            if(towers[foe].king <= 0)
+                winner = t.owner;
+        }
+    }
+}
+else{
+    t.state = "walk";
+
+    t.x +=
+        Math.sign(goal - t.x) *
+        c.speed *
+        T *
+        DT;
+
+    t.x = Math.max(
+        MIN_BATTLE_X,
+        Math.min(MAX_BATTLE_X, t.x)
+    );
+}
             });
 
             field[lane] = troops.filter(t => t.hp > 0);
