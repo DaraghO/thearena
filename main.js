@@ -21,7 +21,10 @@ const roomsDiv = document.getElementById("rooms");
 const createButton = document.getElementById("createRoom");
 let currentRoomId = null;
 let hostedRoomId = null;
+const WAITING_ROOM_STALE_MS = 15000;
+const ROOM_CLEANUP_INTERVAL_MS = 5000;
 
+let cleaningRooms = false;
 // Listen for rooms
 
 onSnapshot(collection(db, "rooms"), (snapshot)=>{
@@ -108,9 +111,10 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
                 startGame(currentRoomId);
 
                 await updateDoc(doc(db, "rooms", roomDoc.id), {
-                    player2: auth.currentUser.uid,
-                    state: "playing"
-                });
+    player2: auth.currentUser.uid,
+    state: "playing",
+    "presence.player2": Date.now()
+});
 
                 document.getElementById("status").textContent =
                     "Joined room: " + room.name;
@@ -193,7 +197,12 @@ createButton.onclick = async () => {
                 host: auth.currentUser.uid,
                 player2: null,
                 state: "waiting",
-                created: serverTimestamp()
+created: serverTimestamp(),
+
+presence: {
+    player1: Date.now(),
+    player2: null
+}
             });
 
         currentRoomId = roomReference.id;
@@ -212,3 +221,60 @@ createButton.onclick = async () => {
         createButton.disabled = false;
     }
 };
+async function cleanupStaleWaitingRooms()
+{
+    if(cleaningRooms)
+        return;
+
+    cleaningRooms = true;
+
+    try
+    {
+        const snapshot =
+            await getDocs(collection(db, "rooms"));
+
+        const now = Date.now();
+        const deletions = [];
+
+        snapshot.forEach(roomDoc => {
+
+            const room = roomDoc.data();
+
+            if(room.state !== "waiting")
+                return;
+
+            const hostLastSeen =
+                room.presence?.player1;
+
+            // Ignore old room documents that predate the presence system.
+            if(!hostLastSeen)
+                return;
+
+            if(now - hostLastSeen <= WAITING_ROOM_STALE_MS)
+                return;
+
+            deletions.push(
+                deleteDoc(doc(db, "rooms", roomDoc.id))
+            );
+        });
+
+        await Promise.allSettled(deletions);
+    }
+    catch(error)
+    {
+        console.error(
+            "Could not clean stale rooms:",
+            error
+        );
+    }
+    finally
+    {
+        cleaningRooms = false;
+    }
+}
+cleanupStaleWaitingRooms();
+
+setInterval(
+    cleanupStaleWaitingRooms,
+    ROOM_CLEANUP_INTERVAL_MS
+);
