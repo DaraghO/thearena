@@ -166,10 +166,14 @@ createButton.onclick = async () => {
             const room = roomDoc.data();
 
             if(
-                room.name.toLowerCase() === roomName.toLowerCase()
-            ){
-                duplicateName = true;
-            }
+    room.name.toLowerCase() === roomName.toLowerCase() &&
+    (
+        room.state === "waiting" ||
+        room.state === "playing"
+    )
+){
+    duplicateName = true;
+}
 
             if(
                 room.host === auth.currentUser.uid &&
@@ -221,7 +225,9 @@ presence: {
         createButton.disabled = false;
     }
 };
-async function cleanupStaleWaitingRooms()
+
+
+async function cleanupStaleRooms()
 {
     if(cleaningRooms)
         return;
@@ -240,22 +246,58 @@ async function cleanupStaleWaitingRooms()
 
             const room = roomDoc.data();
 
-            if(room.state !== "waiting")
+            const player1LastSeen =
+                room.presence?.player1 ?? 0;
+
+            const player2LastSeen =
+                room.presence?.player2 ?? 0;
+
+            const player1Stale =
+                !player1LastSeen ||
+                now - player1LastSeen > 15000;
+
+            const player2Stale =
+                !player2LastSeen ||
+                now - player2LastSeen > 15000;
+
+            if(
+                room.state === "waiting" &&
+                player1Stale
+            ){
+                deletions.push(
+                    deleteDoc(
+                        doc(db, "rooms", roomDoc.id)
+                    )
+                );
+
                 return;
+            }
 
-            const hostLastSeen =
-                room.presence?.player1;
+            if(
+                room.state === "playing" &&
+                player1Stale &&
+                player2Stale
+            ){
+                deletions.push(
+                    deleteDoc(
+                        doc(db, "rooms", roomDoc.id)
+                    )
+                );
 
-            // Ignore old room documents that predate the presence system.
-            if(!hostLastSeen)
                 return;
+            }
 
-            if(now - hostLastSeen <= WAITING_ROOM_STALE_MS)
-                return;
-
-            deletions.push(
-                deleteDoc(doc(db, "rooms", roomDoc.id))
-            );
+            if(
+                room.game?.phase === "ended" &&
+                player1Stale &&
+                player2Stale
+            ){
+                deletions.push(
+                    deleteDoc(
+                        doc(db, "rooms", roomDoc.id)
+                    )
+                );
+            }
         });
 
         await Promise.allSettled(deletions);
@@ -272,9 +314,10 @@ async function cleanupStaleWaitingRooms()
         cleaningRooms = false;
     }
 }
-cleanupStaleWaitingRooms();
+
+cleanupStaleRooms();
 
 setInterval(
-    cleanupStaleWaitingRooms,
+    cleanupStaleRooms,
     ROOM_CLEANUP_INTERVAL_MS
 );
