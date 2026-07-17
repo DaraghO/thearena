@@ -534,7 +534,373 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     color:var(--muted);
     font-size:13px;
 }
-    
+    /* ---------- REDESIGNED TOWERS ---------- */
+
+.arena-tower{
+    pointer-events:none;
+}
+
+.tower-shake{
+    transform-box:fill-box;
+    transform-origin:center bottom;
+}
+
+.tower-shadow{
+    fill:rgba(20,15,8,.32);
+}
+
+.tower-base{
+    fill:url(#towerBaseGradient);
+    stroke:#192235;
+    stroke-width:2;
+}
+
+.tower-body{
+    fill:#354159;
+    stroke:#1c2639;
+    stroke-width:2.2;
+}
+
+.tower-highlight{
+    fill:rgba(255,255,255,.08);
+}
+
+.tower-top{
+    fill:#53617a;
+    stroke:#202b3d;
+    stroke-width:2;
+}
+
+.tower-crenel{
+    fill:#63718a;
+    stroke:#263248;
+    stroke-width:2;
+}
+
+.tower-banner{
+    fill:var(--banner);
+    stroke:var(--banner-dark);
+    stroke-width:2;
+    filter:drop-shadow(0 0 5px var(--banner));
+}
+
+.tower-crown{
+    fill:var(--gold);
+    stroke:#9f7014;
+    stroke-width:1.5;
+    filter:drop-shadow(0 0 4px rgba(255,194,60,.7));
+}
+
+.tower-health-track{
+    fill:#24161d;
+    stroke:rgba(0,0,0,.8);
+    stroke-width:2;
+}
+
+.tower-health-fill{
+    fill:#5cd08a;
+    filter:drop-shadow(0 0 3px rgba(92,208,138,.7));
+}
+
+.tower-critical .tower-health-fill{
+    fill:#ef5a3c;
+}
+
+.tower-health-label{
+    fill:#fff;
+    font-family:var(--font-display);
+    font-size:9px;
+    font-weight:700;
+    paint-order:stroke;
+    stroke:#111827;
+    stroke-width:3px;
+    stroke-linejoin:round;
+}
+
+.tower-impact{
+    opacity:0;
+    pointer-events:none;
+}
+
+.tower-impact circle{
+    fill:#fff;
+    filter:blur(2px);
+}
+
+.tower-damage{
+    opacity:0;
+    fill:#fff5c4;
+    font-family:var(--font-display);
+    font-size:17px;
+    font-weight:700;
+    paint-order:stroke;
+    stroke:#722b22;
+    stroke-width:4px;
+    stroke-linejoin:round;
+}
+
+.tower-smoke{
+    opacity:0;
+    fill:#20242c;
+    filter:blur(1px);
+}
+
+.tower-debris{
+    pointer-events:none;
+}
+
+.tower-debris rect{
+    opacity:0;
+    fill:#68758a;
+    stroke:#202a3a;
+    stroke-width:1;
+    transform-box:fill-box;
+    transform-origin:center;
+}
+
+.tower-ruins{
+    opacity:0;
+    fill:#4f5d73;
+}
+
+.tower-hit .tower-shake{
+    animation:
+        towerHit
+        .38s
+        cubic-bezier(.2,.9,.35,1);
+}
+
+.tower-hit .tower-impact{
+    animation:
+        towerFlash
+        .36s
+        ease-out;
+}
+
+.tower-hit .tower-damage{
+    animation:
+        towerDamagePop
+        .72s
+        ease-out;
+}
+
+.tower-critical .tower-shake{
+    animation:
+        towerCriticalPulse
+        .7s
+        ease-in-out
+        infinite
+        alternate;
+}
+
+.tower-critical .tower-smoke{
+    animation:
+        towerSmoke
+        1.4s
+        ease-out
+        infinite;
+}
+
+.tower-destroyed .tower-shake{
+    animation:
+        towerCollapse
+        .9s
+        cubic-bezier(.55,.05,.7,.25)
+        forwards;
+}
+
+.tower-destroyed .tower-health{
+    animation:
+        towerHealthDisappear
+        .2s
+        forwards;
+}
+
+.tower-destroyed .tower-debris rect{
+    animation:
+        towerDebris
+        .8s
+        ease-out
+        forwards;
+}
+
+.tower-destroyed .tower-ruins{
+    animation:
+        towerRuinsAppear
+        .4s
+        .45s
+        ease
+        forwards;
+}
+
+@keyframes towerHit{
+    0%{
+        transform:translateX(0) rotate(0);
+    }
+
+    18%{
+        transform:
+            translateX(-8px)
+            rotate(-3deg)
+            scale(1.03);
+    }
+
+    44%{
+        transform:
+            translateX(7px)
+            rotate(2.4deg);
+    }
+
+    70%{
+        transform:
+            translateX(-3px)
+            rotate(-1deg);
+    }
+
+    100%{
+        transform:
+            translateX(0)
+            rotate(0);
+    }
+}
+
+@keyframes towerFlash{
+    0%{
+        opacity:0;
+        transform:scale(.4);
+    }
+
+    22%{
+        opacity:.95;
+    }
+
+    100%{
+        opacity:0;
+        transform:scale(1.55);
+    }
+}
+
+@keyframes towerDamagePop{
+    0%{
+        opacity:0;
+        transform:translateY(10px) scale(.55);
+    }
+
+    18%{
+        opacity:1;
+        transform:translateY(-4px) scale(1.18);
+    }
+
+    100%{
+        opacity:0;
+        transform:translateY(-39px) scale(.95);
+    }
+}
+
+@keyframes towerCriticalPulse{
+    from{
+        filter:
+            drop-shadow(0 5px 5px rgba(0,0,0,.35));
+    }
+
+    to{
+        filter:
+            drop-shadow(0 0 10px rgba(239,90,60,.8))
+            drop-shadow(0 5px 5px rgba(0,0,0,.35));
+    }
+}
+
+@keyframes towerSmoke{
+    0%{
+        opacity:0;
+        transform:translateY(8px) scale(.5);
+    }
+
+    35%{
+        opacity:.72;
+    }
+
+    100%{
+        opacity:0;
+        transform:
+            translate(8px,-26px)
+            scale(1.55);
+    }
+}
+
+@keyframes towerCollapse{
+    0%{
+        opacity:1;
+        transform:
+            translateY(0)
+            rotate(0)
+            scale(1);
+    }
+
+    25%{
+        transform:
+            translateY(3px)
+            rotate(-4deg)
+            scale(1.04);
+    }
+
+    68%{
+        opacity:.9;
+        transform:
+            translateY(17px)
+            rotate(10deg)
+            scale(.82);
+    }
+
+    100%{
+        opacity:0;
+        transform:
+            translateY(37px)
+            rotate(18deg)
+            scale(.22);
+    }
+}
+
+@keyframes towerHealthDisappear{
+    to{
+        opacity:0;
+    }
+}
+
+@keyframes towerDebris{
+    0%{
+        opacity:0;
+        transform:
+            translate(0,0)
+            rotate(0);
+    }
+
+    12%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+        transform:
+            translate(
+                var(--dx),
+                var(--dy)
+            )
+            rotate(var(--rot));
+    }
+}
+
+@keyframes towerRuinsAppear{
+    from{
+        opacity:0;
+        transform:scale(.55);
+    }
+
+    to{
+        opacity:1;
+        transform:scale(1);
+    }
+}
 /* ---------- TRAY ---------- */
 .tray{
     flex:none;
@@ -996,7 +1362,32 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         </div>
 
         <div class="board-wrap">
-            <svg id="board" viewBox="0 0 400 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+            <svg
+    id="board"
+    viewBox="0 0 400 560"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+>
+    <defs>
+        <linearGradient
+            id="towerBaseGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+        >
+            <stop
+                offset="0%"
+                stop-color="#4c5a72"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#263146"
+            />
+        </linearGradient>
+    </defs>
+</svg>
         </div>
 
         <div class="tray">
