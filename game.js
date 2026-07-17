@@ -17,6 +17,9 @@ import {
 console.log("game.js loaded");
 
 const SELECTION_SECONDS = 5;
+const HEARTBEAT_INTERVAL_MS = 4000;
+const PLAYER_STALE_MS = 14000;
+const PRESENCE_CHECK_INTERVAL_MS = 2000;
 
 let roomId = null;
 let latestRoom = null;
@@ -27,19 +30,55 @@ let hostTimer = null;
 let replayTag = null;
 let replayRaf = null;
 let lastPhase = null;
+let heartbeatTimer = null;
+let presenceCheckTimer = null;
+let disconnectResolutionRunning = false;
 
-function self(){ return auth.currentUser.uid === latestRoom.host ? "player1" : "player2"; }
-function isHost(){ return auth.currentUser.uid === latestRoom.host; }
-function ref(){ return doc(db, "rooms", roomId); }
+
+function playerKeyFor(room)
+{
+    return auth.currentUser.uid === room.host
+        ? "player1"
+        : "player2";
+}
+
+function opponentKeyFor(room)
+{
+    return playerKeyFor(room) === "player1"
+        ? "player2"
+        : "player1";
+}
+
+function self()
+{
+    return playerKeyFor(latestRoom);
+}
+
+function isHost()
+{
+    return auth.currentUser.uid === latestRoom.host;
+}
+
+function ref()
+{
+    return doc(db, "rooms", roomId);
+}
 
 export function startGame(id){
     roomId = id;
-    onSnapshot(ref(), async (snap) => {
-        const room = snap.data();
-        if(!room) return;
-        latestRoom = room;
+   onSnapshot(ref(), async (snap) => {
 
-if(room.state === "player-left"){
+    if(!snap.exists()){
+        stopPresenceTracking();
+        return;
+    }
+
+    const room = snap.data();
+    latestRoom = room;
+
+    startPresenceTracking();
+
+    if(room.state === "player-left"){
     const leavingUid = room.leftBy;
 
     if(leavingUid !== auth.currentUser.uid){
@@ -124,7 +163,183 @@ function newGameState(){
         }
     };
 }
+/* ---------------- PRESENCE ---------------- */
 
+function startPresenceTracking()
+{
+    if(!heartbeatTimer)
+    {
+        sendHeartbeat();
+
+        heartbeatTimer = setInterval(
+            sendHeartbeat,
+            HEARTBEAT_INTERVAL_MS
+        );
+    }
+
+    if(!presenceCheckTimer)
+    {
+        presenceCheckTimer = setInterval(
+            checkOpponentPresence,
+            PRESENCE_CHECK_INTERVAL_MS
+        );
+    }
+}
+
+
+function stopPresenceTracking()
+{
+    if(heartbeatTimer)
+        clearInterval(heartbeatTimer);
+
+    if(presenceCheckTimer)
+        clearInterval(presenceCheckTimer);
+
+    heartbeatTimer = null;
+    presenceCheckTimer = null;
+}
+
+
+async function sendHeartbeat()
+{
+    if(!roomId || !latestRoom)
+        return;
+
+    const playerKey =
+        playerKeyFor(latestRoom);
+
+    // Player 2 may call startGame before the join write finishes.
+    if(
+        playerKey === "player2" &&
+        latestRoom.player2 !== auth.currentUser.uid
+    ){
+        return;
+    }
+
+    try
+    {
+        await updateDoc(ref(), {
+            [`presence.${playerKey}`]: Date.now()
+        });
+    }
+    catch(error)
+    {
+        // Expected if the room was just deleted.
+        console.warn(
+            "Heartbeat stopped:",
+            error
+        );
+    }
+}
+
+
+async function checkOpponentPresence()
+{
+    if(!latestRoom)
+        return;
+
+    if(latestRoom.state !== "playing")
+        return;
+
+    if(!latestRoom.game)
+        return;
+
+    if(latestRoom.game.phase === "ended")
+        return;
+
+    const opponent =
+        opponentKeyFor(latestRoom);
+
+    const opponentLastSeen =
+        latestRoom.presence?.[opponent];
+
+    if(!opponentLastSeen)
+        return;
+
+    if(
+        Date.now() - opponentLastSeen
+        <= PLAYER_STALE_MS
+    ){
+        return;
+    }
+
+    await resolveDisconnectedPlayer();
+}
+
+
+async function resolveDisconnectedPlayer()
+{
+    if(disconnectResolutionRunning)
+        return;
+
+    disconnectResolutionRunning = true;
+
+    try
+    {
+        await runTransaction(db, async transaction => {
+
+            const snapshot =
+                await transaction.get(ref());
+
+            if(!snapshot.exists())
+                return;
+
+            const room = snapshot.data();
+
+            if(room.state !== "playing")
+                return;
+
+            if(!room.game)
+                return;
+
+            if(room.game.phase === "ended")
+                return;
+
+            const winner =
+                playerKeyFor(room);
+
+            const disconnectedPlayer =
+                winner === "player1"
+                    ? "player2"
+                    : "player1";
+
+            const lastSeen =
+                room.presence?.[disconnectedPlayer];
+
+            // Recheck inside the transaction in case a heartbeat
+            // arrived while this operation was starting.
+            if(!lastSeen)
+                return;
+
+            if(
+                Date.now() - lastSeen
+                <= PLAYER_STALE_MS
+            ){
+                return;
+            }
+
+            transaction.update(ref(), {
+                "game.phase": "ended",
+                "game.winner": winner,
+                "game.battle": null,
+                "game.endReason": "disconnect",
+                "game.disconnectedPlayer":
+                    disconnectedPlayer
+            });
+        });
+    }
+    catch(error)
+    {
+        console.error(
+            "Could not resolve disconnect:",
+            error
+        );
+    }
+    finally
+    {
+        disconnectResolutionRunning = false;
+    }
+}
 
 /* ---------------- GAME CREATION ---------------- */
 async function createGame(){
