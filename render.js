@@ -80,30 +80,298 @@ function updateHp(el, ratio){
     f.setAttribute("fill", hpColor(r));
 }
 
-function tower(cx, baseY, w, h, team, king, ratio){
-    const x = cx - w/2, y = baseY - h;
-    const dx = w*0.24, dy = h*0.26;
-    const front = `${x},${y} ${x+w},${y} ${x+w},${baseY} ${x},${baseY}`;
-    const top   = `${x},${y} ${x+w},${y} ${x+w+dx},${y-dy} ${x+dx},${y-dy}`;
-    const side  = `${x+w},${y} ${x+w+dx},${y-dy} ${x+w+dx},${baseY-dy} ${x+w},${baseY}`;
-    const base = `var(--${team})`, light = `var(--${team}-light)`, dark = `var(--${team}-dark)`;
-    let crenel = "";
-    if(king){
-        const cw = w/5;
-        for(let i=0;i<3;i++){
-            const bx = x + dx + i*2*cw + cw*0.4;
-            crenel += `<polygon points="${bx},${y-dy} ${bx+cw},${y-dy} ${bx+cw+dx*0.5},${y-dy-dy*0.5} ${bx+dx*0.5},${y-dy-dy*0.5}" fill="${light}" stroke="var(--ink)" stroke-width="2"/>`;
-        }
-    }
-    const r = clamp01(ratio);
-    const bw = w+dx, bx = x, by = y-dy-12;
-    const hp = `<rect x="${bx}" y="${by}" width="${bw}" height="5" rx="2.5" fill="#00000055"/>
-                <rect x="${bx}" y="${by}" width="${(bw*r).toFixed(1)}" height="5" rx="2.5" fill="${hpColor(r)}"/>`;
-    return `<g class="tower">
-        <polygon points="${side}" fill="${dark}" stroke="var(--ink)" stroke-width="2.5"/>
-        <polygon points="${top}" fill="${light}" stroke="var(--ink)" stroke-width="2.5"/>
-        <polygon points="${front}" fill="${base}" stroke="var(--ink)" stroke-width="2.5"/>
-        ${crenel}${hp}</g>`;
+function tower(
+    cx,
+    baseY,
+    team,
+    king,
+    currentHp,
+    maxHp,
+    towerId,
+    damage = 0
+){
+    const ratio = clamp01(currentHp / maxHp);
+
+    const scale = king ? 1.12 : 1;
+    const width = king ? 58 : 50;
+    const height = king ? 72 : 62;
+
+    const x = cx - width / 2;
+    const y = baseY - height;
+
+    const teamClass =
+        team === "you"
+            ? "tower-you"
+            : "tower-enemy";
+
+    const stateClasses = [];
+
+    if(damage > 0)
+        stateClasses.push("tower-hit");
+
+    if(currentHp > 0 && ratio <= 0.3)
+        stateClasses.push("tower-critical");
+
+    if(currentHp <= 0)
+        stateClasses.push("tower-destroyed");
+
+    const hpWidth = king ? 78 : 66;
+    const hpX = cx - hpWidth / 2;
+    const hpY = y - 18;
+
+    const bannerColor =
+        team === "you"
+            ? "var(--you)"
+            : "var(--enemy)";
+
+    const bannerDark =
+        team === "you"
+            ? "var(--you-dark)"
+            : "var(--enemy-dark)";
+
+    const label =
+        king
+            ? `${currentHp} / ${maxHp}`
+            : `${currentHp}`;
+
+    const crown = king
+        ? `
+            <path
+                class="tower-crown"
+                d="
+                    M ${cx - 20} ${y - 13}
+                    L ${cx - 11} ${y - 5}
+                    L ${cx - 5} ${y - 18}
+                    L ${cx} ${y - 5}
+                    L ${cx + 7} ${y - 18}
+                    L ${cx + 12} ${y - 5}
+                    L ${cx + 20} ${y - 13}
+                    L ${cx + 16} ${y + 1}
+                    L ${cx - 16} ${y + 1}
+                    Z
+                "
+            />
+        `
+        : "";
+
+    const smoke = `
+        <g class="tower-smoke">
+            <circle cx="${cx - 4}" cy="${y + 12}" r="5"/>
+            <circle cx="${cx + 2}" cy="${y + 5}" r="7"/>
+            <circle cx="${cx + 7}" cy="${y - 3}" r="6"/>
+        </g>
+    `;
+
+    const debris = `
+        <g class="tower-debris">
+            <rect
+                x="${cx - 4}"
+                y="${baseY - 25}"
+                width="7"
+                height="7"
+                style="--dx:-24px;--dy:-34px;--rot:-130deg"
+            />
+
+            <rect
+                x="${cx + 2}"
+                y="${baseY - 20}"
+                width="8"
+                height="6"
+                style="--dx:27px;--dy:-29px;--rot:155deg"
+            />
+
+            <rect
+                x="${cx - 1}"
+                y="${baseY - 34}"
+                width="6"
+                height="8"
+                style="--dx:8px;--dy:-44px;--rot:210deg"
+            />
+
+            <rect
+                x="${cx - 9}"
+                y="${baseY - 17}"
+                width="6"
+                height="6"
+                style="--dx:-31px;--dy:-20px;--rot:-190deg"
+            />
+
+            <rect
+                x="${cx + 8}"
+                y="${baseY - 31}"
+                width="6"
+                height="7"
+                style="--dx:32px;--dy:-38px;--rot:120deg"
+            />
+        </g>
+    `;
+
+    return `
+        <g
+            class="
+                arena-tower
+                ${teamClass}
+                ${king ? "king-tower" : "lane-tower"}
+                ${stateClasses.join(" ")}
+            "
+            data-tower-id="${towerId}"
+            data-hp="${currentHp}"
+            transform="translate(${cx} ${baseY}) scale(${scale}) translate(${-cx} ${-baseY})"
+        >
+            <g class="tower-shake">
+                <ellipse
+                    class="tower-shadow"
+                    cx="${cx}"
+                    cy="${baseY + 3}"
+                    rx="${width * 0.57}"
+                    ry="7"
+                />
+
+                <rect
+                    class="tower-base"
+                    x="${x + 3}"
+                    y="${baseY - 17}"
+                    width="${width - 6}"
+                    height="20"
+                    rx="5"
+                />
+
+                <path
+                    class="tower-body"
+                    d="
+                        M ${x + 8} ${y + 17}
+                        L ${x + width - 8} ${y + 17}
+                        L ${x + width - 3} ${baseY - 14}
+                        L ${x + 3} ${baseY - 14}
+                        Z
+                    "
+                />
+
+                <path
+                    class="tower-highlight"
+                    d="
+                        M ${cx - 2} ${y + 20}
+                        L ${cx + 4} ${y + 20}
+                        L ${cx + 8} ${baseY - 17}
+                        L ${cx + 1} ${baseY - 17}
+                        Z
+                    "
+                />
+
+                <path
+                    class="tower-banner"
+                    style="
+                        --banner:${bannerColor};
+                        --banner-dark:${bannerDark};
+                    "
+                    d="
+                        M ${cx - 10} ${y + 27}
+                        L ${cx + 10} ${y + 27}
+                        L ${cx + 10} ${y + 49}
+                        L ${cx} ${y + 57}
+                        L ${cx - 10} ${y + 49}
+                        Z
+                    "
+                />
+
+                <rect
+                    class="tower-top"
+                    x="${x + 3}"
+                    y="${y + 7}"
+                    width="${width - 6}"
+                    height="20"
+                    rx="4"
+                />
+
+                <rect
+                    class="tower-crenel"
+                    x="${x + 5}"
+                    y="${y - 2}"
+                    width="10"
+                    height="13"
+                    rx="2"
+                />
+
+                <rect
+                    class="tower-crenel"
+                    x="${cx - 5}"
+                    y="${y - 2}"
+                    width="10"
+                    height="13"
+                    rx="2"
+                />
+
+                <rect
+                    class="tower-crenel"
+                    x="${x + width - 15}"
+                    y="${y - 2}"
+                    width="10"
+                    height="13"
+                    rx="2"
+                />
+
+                ${crown}
+                ${smoke}
+
+                <g class="tower-impact">
+                    <circle
+                        cx="${cx}"
+                        cy="${y + height * 0.48}"
+                        r="${width * 0.43}"
+                    />
+                </g>
+
+                <text
+                    class="tower-damage"
+                    x="${cx}"
+                    y="${y + 14}"
+                    text-anchor="middle"
+                >-${damage}</text>
+
+                ${debris}
+            </g>
+
+            <g class="tower-health">
+                <text
+                    class="tower-health-label"
+                    x="${cx}"
+                    y="${hpY - 4}"
+                    text-anchor="middle"
+                >${label}</text>
+
+                <rect
+                    class="tower-health-track"
+                    x="${hpX}"
+                    y="${hpY}"
+                    width="${hpWidth}"
+                    height="8"
+                    rx="4"
+                />
+
+                <rect
+                    class="tower-health-fill"
+                    x="${hpX}"
+                    y="${hpY}"
+                    width="${(hpWidth * ratio).toFixed(2)}"
+                    height="8"
+                    rx="4"
+                />
+            </g>
+
+            <g class="tower-ruins">
+                <ellipse
+                    cx="${cx}"
+                    cy="${baseY - 1}"
+                    rx="${width * 0.45}"
+                    ry="7"
+                />
+
+                <circle cx="${cx - 14}" cy="${baseY - 6}" r="7"/>
+                <circle cx="${cx - 3}" cy="${baseY - 3}" r="9"/>
+                <circle cx="${cx + 10}" cy="${baseY - 7}" r="8"/>
+            </g>
+        </g>
+    `;
 }
 
 const FIELD = `
@@ -145,18 +413,144 @@ const LANES = `
           opacity=".4" pointer-events="none"/>
 `;
 
-function towersMarkup(towers, self){
-    const opp = self === "player1" ? "player2" : "player1";
-    const me = towers[self], you = towers[opp];
+function towersMarkup(
+    towers,
+    self,
+    previousTowers = null
+){
+    const opponent =
+        self === "player1"
+            ? "player2"
+            : "player1";
+
+    const mine = towers[self];
+    const theirs = towers[opponent];
+
+    const previousMine =
+        previousTowers?.[self] || mine;
+
+    const previousTheirs =
+        previousTowers?.[opponent] || theirs;
+
+    function damage(previous, current){
+        return Math.max(
+            0,
+            (previous ?? current) - current
+        );
+    }
+
     return (
-        tower(200, 96, 44, 34, "enemy", true,  you.king  / TOWER_MAX.king) +
-        tower(110,150, 40, 30, "enemy", false, you.left  / TOWER_MAX.other) +
-        tower(200,150, 40, 30, "enemy", false, you.middle/ TOWER_MAX.other) +
-        tower(290,150, 40, 30, "enemy", false, you.right / TOWER_MAX.other) +
-        tower(105,470, 50, 38, "you", false, me.left  / TOWER_MAX.other) +
-        tower(200,470, 50, 38, "you", false, me.middle/ TOWER_MAX.other) +
-        tower(295,470, 50, 38, "you", false, me.right / TOWER_MAX.other) +
-        tower(200,516, 56, 44, "you", true,  me.king  / TOWER_MAX.king)
+        tower(
+            200,
+            103,
+            "enemy",
+            true,
+            theirs.king,
+            TOWER_MAX.king,
+            "enemy-king",
+            damage(
+                previousTheirs.king,
+                theirs.king
+            )
+        ) +
+
+        tower(
+            110,
+            160,
+            "enemy",
+            false,
+            theirs.left,
+            TOWER_MAX.other,
+            "enemy-left",
+            damage(
+                previousTheirs.left,
+                theirs.left
+            )
+        ) +
+
+        tower(
+            200,
+            160,
+            "enemy",
+            false,
+            theirs.middle,
+            TOWER_MAX.other,
+            "enemy-middle",
+            damage(
+                previousTheirs.middle,
+                theirs.middle
+            )
+        ) +
+
+        tower(
+            290,
+            160,
+            "enemy",
+            false,
+            theirs.right,
+            TOWER_MAX.other,
+            "enemy-right",
+            damage(
+                previousTheirs.right,
+                theirs.right
+            )
+        ) +
+
+        tower(
+            105,
+            472,
+            "you",
+            false,
+            mine.left,
+            TOWER_MAX.other,
+            "you-left",
+            damage(
+                previousMine.left,
+                mine.left
+            )
+        ) +
+
+        tower(
+            200,
+            472,
+            "you",
+            false,
+            mine.middle,
+            TOWER_MAX.other,
+            "you-middle",
+            damage(
+                previousMine.middle,
+                mine.middle
+            )
+        ) +
+
+        tower(
+            295,
+            472,
+            "you",
+            false,
+            mine.right,
+            TOWER_MAX.other,
+            "you-right",
+            damage(
+                previousMine.right,
+                mine.right
+            )
+        ) +
+
+        tower(
+            200,
+            527,
+            "you",
+            true,
+            mine.king,
+            TOWER_MAX.king,
+            "you-king",
+            damage(
+                previousMine.king,
+                mine.king
+            )
+        )
     );
 }
 
@@ -168,11 +562,29 @@ function placedTroop(troop, self){
 }
 
 // STATIC full redraw: selection and ended (troops don't move, so this is fine)
+let staticPreviousTowers = null;
+
 export function renderBoard(towers, troops, self){
-    const board = document.getElementById("board");
-    if(!board) return;
-    board.innerHTML = FIELD + LANES + towersMarkup(towers, self)
-        + troops.map(t => placedTroop(t, self)).join("");
+    const board =
+        document.getElementById("board");
+
+    if(!board)
+        return;
+
+    board.innerHTML =
+        FIELD +
+        LANES +
+        towersMarkup(
+            towers,
+            self,
+            staticPreviousTowers
+        ) +
+        troops
+            .map(t => placedTroop(t, self))
+            .join("");
+
+    staticPreviousTowers =
+        structuredClone(towers);
 }
 
 /* ---------- LIVE BATTLE RENDER ----------
@@ -181,10 +593,25 @@ export function renderBoard(towers, troops, self){
 let scene = null;
 
 export function initBattle(self){
-    const board = document.getElementById("board");
-    if(!board) return;
-    board.innerHTML = FIELD + LANES + `<g class="tower-layer"></g><g class="troop-layer"></g>`;
-    scene = { els:new Map(), towersKey:"" };
+    const board =
+        document.getElementById("board");
+
+    if(!board)
+        return;
+
+    board.innerHTML =
+        FIELD +
+        LANES +
+        `
+            <g class="tower-layer"></g>
+            <g class="troop-layer"></g>
+        `;
+
+    scene = {
+        els: new Map(),
+        towersKey: "",
+        previousTowers: null
+    };
 }
 
 export function drawBattleFrame(a, b, t, self){
@@ -192,11 +619,25 @@ export function drawBattleFrame(a, b, t, self){
     const board = document.getElementById("board");
     if(!board) return;
 
-    const key = JSON.stringify(a.towers);
-    if(key !== scene.towersKey){
-        board.querySelector(".tower-layer").innerHTML = towersMarkup(a.towers, self);
-        scene.towersKey = key;
-    }
+    const key =
+    JSON.stringify(a.towers);
+
+if(key !== scene.towersKey){
+    const towerLayer =
+        board.querySelector(".tower-layer");
+
+    towerLayer.innerHTML =
+        towersMarkup(
+            a.towers,
+            self,
+            scene.previousTowers
+        );
+
+    scene.previousTowers =
+        structuredClone(a.towers);
+
+    scene.towersKey = key;
+}
 
     const layer = board.querySelector(".troop-layer");
     const bMap = {};
