@@ -419,12 +419,220 @@ const FIELD = `
                 stop-color="#263146"
             />
         </linearGradient>
+
+        <linearGradient
+            id="arenaGrassGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+        >
+            <stop
+                offset="0%"
+                stop-color="#2d4539"
+            />
+
+            <stop
+                offset="49%"
+                stop-color="#263c32"
+            />
+
+            <stop
+                offset="51%"
+                stop-color="#1e342b"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#294136"
+            />
+        </linearGradient>
+
+        <linearGradient
+            id="riverGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+        >
+            <stop
+                offset="0%"
+                stop-color="#2ba0c9"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#14617e"
+            />
+        </linearGradient>
+
+        <pattern
+            id="grassTexture"
+            width="54"
+            height="54"
+            patternUnits="userSpaceOnUse"
+        >
+            <path
+                d="M 0 2 H 54"
+                stroke="rgba(255,255,255,.025)"
+                stroke-width="2"
+            />
+        </pattern>
+
+        <pattern
+            id="riverTexture"
+            width="22"
+            height="18"
+            patternUnits="userSpaceOnUse"
+            patternTransform="skewX(-18)"
+        >
+            <path
+                d="M 0 4 H 11"
+                stroke="rgba(255,255,255,.16)"
+                stroke-width="3"
+                stroke-linecap="round"
+            />
+        </pattern>
+
+        <pattern
+            id="bridgeBoards"
+            width="17"
+            height="20"
+            patternUnits="userSpaceOnUse"
+        >
+            <rect
+                width="14"
+                height="20"
+                fill="#a56e3b"
+            />
+
+            <rect
+                x="14"
+                width="3"
+                height="20"
+                fill="#80512b"
+            />
+        </pattern>
+
+        <clipPath id="arenaClip">
+            <polygon points="60,70 340,70 380,520 20,520"/>
+        </clipPath>
     </defs>
 
-    <polygon points="60,70 340,70 380,520 20,520" fill="var(--sand)" stroke="var(--rim)" stroke-width="4"/>
-    <polygon points="60,70 340,70 380,520 20,520" fill="none" stroke="var(--sand-edge)" stroke-width="2" opacity=".6"/>`;
+    <polygon
+        points="60,70 340,70 380,520 20,520"
+        fill="url(#arenaGrassGradient)"
+        stroke="#17251f"
+        stroke-width="5"
+    />
 
+    <polygon
+        points="60,70 340,70 380,520 20,520"
+        fill="url(#grassTexture)"
+        pointer-events="none"
+    />
+
+    <polygon
+        points="60,70 340,70 380,520 20,520"
+        fill="none"
+        stroke="rgba(255,255,255,.08)"
+        stroke-width="2"
+        pointer-events="none"
+    />
+`;
 const LANES = `
+    <g clip-path="url(#arenaClip)">
+        <rect
+            x="0"
+            y="272"
+            width="400"
+            height="46"
+            fill="url(#riverGradient)"
+        />
+
+        <rect
+            x="0"
+            y="272"
+            width="400"
+            height="46"
+            fill="url(#riverTexture)"
+            pointer-events="none"
+        />
+
+        <line
+            x1="0"
+            y1="273"
+            x2="400"
+            y2="273"
+            stroke="rgba(255,255,255,.18)"
+            stroke-width="2"
+            pointer-events="none"
+        />
+
+        <line
+            x1="0"
+            y1="317"
+            x2="400"
+            y2="317"
+            stroke="rgba(0,0,0,.35)"
+            stroke-width="3"
+            pointer-events="none"
+        />
+
+        <rect
+            x="77"
+            y="265"
+            width="66"
+            height="60"
+            rx="7"
+            fill="url(#bridgeBoards)"
+            stroke="#613c22"
+            stroke-width="3"
+        />
+
+        <rect
+            x="167"
+            y="265"
+            width="66"
+            height="60"
+            rx="7"
+            fill="url(#bridgeBoards)"
+            stroke="#613c22"
+            stroke-width="3"
+        />
+
+        <rect
+            x="257"
+            y="265"
+            width="66"
+            height="60"
+            rx="7"
+            fill="url(#bridgeBoards)"
+            stroke="#613c22"
+            stroke-width="3"
+        />
+
+        <line
+            x1="153"
+            y1="70"
+            x2="140"
+            y2="520"
+            stroke="rgba(255,255,255,.07)"
+            stroke-width="2"
+            pointer-events="none"
+        />
+
+        <line
+            x1="247"
+            y1="70"
+            x2="260"
+            y2="520"
+            stroke="rgba(255,255,255,.07)"
+            stroke-width="2"
+            pointer-events="none"
+        />
+    </g>
+
     <g class="lane-select-layer">
         <polygon
             class="lane-select"
@@ -444,22 +652,7 @@ const LANES = `
             points="247,70 340,70 380,520 260,520"
         />
     </g>
-
-    <line x1="153" y1="70" x2="140" y2="520"
-          stroke="var(--sand-line)" stroke-width="3"
-          stroke-dasharray="2 10" stroke-linecap="round"
-          pointer-events="none"/>
-
-    <line x1="247" y1="70" x2="260" y2="520"
-          stroke="var(--sand-line)" stroke-width="3"
-          stroke-dasharray="2 10" stroke-linecap="round"
-          pointer-events="none"/>
-
-    <line x1="20" y1="295" x2="380" y2="295"
-          stroke="var(--sand-line)" stroke-width="2"
-          opacity=".4" pointer-events="none"/>
 `;
-
 function towersMarkup(
     towers,
     self,
