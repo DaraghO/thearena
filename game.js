@@ -11,7 +11,11 @@ import {
 } from "./render.js";
 
 import {
-    doc, onSnapshot, updateDoc, runTransaction
+    doc,
+    onSnapshot,
+    updateDoc,
+    runTransaction,
+    deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 console.log("game.js loaded");
@@ -63,7 +67,30 @@ function ref()
 {
     return doc(db, "rooms", roomId);
 }
+async function deleteCurrentRoom()
+{
+    if(!roomId)
+        return;
 
+    const roomReference = ref();
+
+    stopPresenceTracking();
+
+    latestRoom = null;
+    roomId = null;
+
+    try
+    {
+        await deleteDoc(roomReference);
+    }
+    catch(error)
+    {
+        console.error(
+            "Could not delete room:",
+            error
+        );
+    }
+}
 export function startGame(id){
     roomId = id;
    onSnapshot(ref(), async (snap) => {
@@ -751,6 +778,40 @@ async function leaveRoom(){
 }
 
 
-function returnToLobby(){
-    window.location.reload();
+async function returnToLobby()
+{
+    const roomToDelete = roomId;
+
+    stopPresenceTracking();
+
+    latestRoom = null;
+    roomId = null;
+
+    if(roomToDelete)
+    {
+        try
+        {
+            await deleteDoc(
+                doc(db, "rooms", roomToDelete)
+            );
+        }
+        catch(error)
+        {
+            console.error(
+                "Could not delete room:",
+                error
+            );
+        }
+    }
+
+    hidePlayerLeft();
+
+    document.getElementById("result")
+        .classList.add("hidden");
+
+    document.getElementById("game")
+        .classList.add("hidden");
+
+    document.getElementById("lobby")
+        .classList.remove("hidden");
 }
