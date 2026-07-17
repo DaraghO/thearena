@@ -584,14 +584,12 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     fill:var(--banner);
     stroke:var(--banner-dark);
     stroke-width:2;
-    filter:drop-shadow(0 0 5px var(--banner));
 }
 
 .tower-crown{
     fill:var(--gold);
     stroke:#9f7014;
     stroke-width:1.5;
-    filter:drop-shadow(0 0 4px rgba(255,194,60,.7));
 }
 
 .tower-health-track{
@@ -602,7 +600,6 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 
 .tower-health-fill{
     fill:#5cd08a;
-    filter:drop-shadow(0 0 3px rgba(92,208,138,.7));
 }
 
 .tower-critical .tower-health-fill{
@@ -628,10 +625,10 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     font-family:var(--font-display);
     font-size:17px;
     font-weight:700;
-    paint-order:stroke;
     stroke:#722b22;
-    stroke-width:4px;
+    stroke-width:2px;
     stroke-linejoin:round;
+    pointer-events:none;
 }
 
 .tower-smoke{
@@ -661,28 +658,37 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .tower-hit .tower-shake{
     animation:
         towerHit
-        .38s
-        cubic-bezier(.2,.9,.35,1);
+        .32s
+        ease-out;
 }
 
 
 .tower-hit .tower-damage{
     animation:
         towerDamageFloat
-        1.25s
+        .9s
         ease-out
         forwards;
 }
 
-.tower-critical{
+.tower-critical .tower-body,
+.tower-critical .tower-top,
+.tower-critical .tower-crenel{
     animation:
         towerCriticalPulse
-        .7s
+        .8s
         ease-in-out
         infinite
         alternate;
 }
 
+.tower-shake,
+.tower-damage,
+.tower-debris rect,
+.tower-ruins{
+    will-change:transform, opacity;
+}
+    
 .tower-smoke{
     display:none;
 }
@@ -704,7 +710,7 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .tower-destroyed .tower-debris rect{
     animation:
         towerDebris
-        .8s
+        .6s
         ease-out
         forwards;
 }
@@ -730,32 +736,23 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     
 @keyframes towerHit{
     0%{
-        transform:translateX(0) rotate(0);
+        transform:translate3d(0,0,0) rotate(0deg);
     }
 
-    18%{
-        transform:
-            translateX(-8px)
-            rotate(-3deg)
-            scale(1.03);
+    20%{
+        transform:translate3d(-4px,0,0) rotate(-2deg);
     }
 
-    44%{
-        transform:
-            translateX(7px)
-            rotate(2.4deg);
+    45%{
+        transform:translate3d(4px,0,0) rotate(1.5deg);
     }
 
     70%{
-        transform:
-            translateX(-3px)
-            rotate(-1deg);
+        transform:translate3d(-2px,0,0) rotate(-.7deg);
     }
 
     100%{
-        transform:
-            translateX(0)
-            rotate(0);
+        transform:translate3d(0,0,0) rotate(0deg);
     }
 }
 
@@ -763,76 +760,52 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 @keyframes towerDamageFloat{
     0%{
         opacity:0;
-        transform:
-            translateY(2px)
-            scale(.9);
+        transform:translate3d(0,2px,0) scale(.9);
     }
 
-    15%{
+    18%{
         opacity:1;
-        transform:
-            translateY(-4px)
-            scale(1);
+        transform:translate3d(0,-5px,0) scale(1);
     }
 
-    60%{
-        opacity:.8;
-        transform:
-            translateY(-25px)
-            scale(1);
+    65%{
+        opacity:.85;
+        transform:translate3d(0,-24px,0) scale(1);
     }
 
     100%{
         opacity:0;
-        transform:
-            translateY(-48px)
-            scale(.95);
+        transform:translate3d(0,-40px,0) scale(.96);
     }
 }
-
 @keyframes towerCriticalPulse{
     from{
-        filter:
-            drop-shadow(0 5px 5px rgba(0,0,0,.35));
+        opacity:1;
     }
 
     to{
-        filter:
-            drop-shadow(0 0 10px rgba(239,90,60,.8))
-            drop-shadow(0 5px 5px rgba(0,0,0,.35));
+        opacity:.72;
     }
 }
 
 @keyframes towerCollapse{
     0%{
         opacity:1;
-        transform:
-            translateY(0)
-            rotate(0)
-            scale(1);
+        transform:translate3d(0,0,0) rotate(0deg) scale(1);
     }
 
-    25%{
-        transform:
-            translateY(3px)
-            rotate(-4deg)
-            scale(1.04);
+    30%{
+        transform:translate3d(0,3px,0) rotate(-3deg) scale(1.02);
     }
 
-    68%{
-        opacity:.9;
-        transform:
-            translateY(17px)
-            rotate(10deg)
-            scale(.82);
+    70%{
+        opacity:.85;
+        transform:translate3d(0,17px,0) rotate(9deg) scale(.78);
     }
 
     100%{
         opacity:0;
-        transform:
-            translateY(37px)
-            rotate(18deg)
-            scale(.22);
+        transform:translate3d(0,34px,0) rotate(16deg) scale(.3);
     }
 }
 
