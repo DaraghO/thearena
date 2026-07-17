@@ -1,6 +1,17 @@
 // render.js
 // All drawing. No Firestore. game.js calls these.
 
+
+/*Dragon animation*/
+
+const DRAGON_ANIMS = {
+    idle: "images/dragon_idle.webp",
+    walk: "images/dragon_walk.webp",
+    attack: "images/dragon_bite.webp",
+    die: "images/dragon_death.webp",
+    pose: "images/dragon_idle.webp"
+};
+
 /* ---------- RIG REGISTRY ----------
    Add a card: write a rig fn, register by id. Rig returns an SVG <g>,
    local box 100 wide, feet at y=118. States: pose walk attack die idle. */
@@ -47,6 +58,35 @@ function fallbackRig(team, state){
 
 const RIGS = { knight: knightRig };
 function rigMarkup(cardId, team, state){
+
+    if(cardId === "dragon")
+    {
+        const file =
+            DRAGON_ANIMS[state] ??
+            DRAGON_ANIMS.idle;
+
+        return `
+            <g class="dragon team-${team}">
+                <ellipse
+                    cx="50"
+                    cy="116"
+                    rx="26"
+                    ry="7"
+                    fill="rgba(0,0,0,.28)"
+                />
+
+                <image
+                    href="${file}"
+                    x="0"
+                    y="0"
+                    width="100"
+                    height="118"
+                    preserveAspectRatio="xMidYMid meet"
+                />
+            </g>
+        `;
+    }
+
     return (RIGS[cardId] || fallbackRig)(team, state);
 }
 
