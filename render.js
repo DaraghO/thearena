@@ -60,10 +60,32 @@ function clamp01(v){ return Math.max(0, Math.min(1, v)); }
 function hpColor(r){ return r > 0.5 ? "#5cd08a" : r > 0.25 ? "#ffc23c" : "#ef5a3c"; }
 
 function placeTroop(lane, x, self){
-    const dx = displayX(x, self);
-    const y = Y_NEAR - (Y_NEAR - Y_FAR) * dx;
-    const sc = 0.5 + 0.22 * (1 - dx);
-    return { tx: LANE_X[lane] - 50*sc, ty: y - 118*sc, sc };
+    const dx =
+        displayX(x, self);
+
+    const y =
+        Y_NEAR -
+        (Y_NEAR - Y_FAR) * dx;
+
+    const sc = Math.max(
+        0.44,
+        Math.min(
+            0.78,
+            0.5 + 0.22 * (1 - dx)
+        )
+    );
+
+    return {
+        tx:
+            LANE_X[lane] -
+            50 * sc,
+
+        ty:
+            y -
+            118 * sc,
+
+        sc
+    };
 }
 
 const HP_W = 36, HP_X = 32, HP_Y = -4, HP_H = 5;
