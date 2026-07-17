@@ -368,7 +368,68 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 #result.win .result-text{ color:var(--you-light); }
 #result .result-sub{ color:var(--muted); font-size:14px; margin-top:6px; }
 
+.match-stats{
+    margin-top:20px;
+    padding-top:18px;
+    border-top:1px solid var(--card-line);
+}
 
+.stats-title{
+    margin-bottom:12px;
+    color:var(--muted);
+    font-family:var(--font-display);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+}
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.stat-box{
+    min-width:0;
+    padding:12px 8px;
+    border:1px solid var(--card-line);
+    border-radius:12px;
+    background:#191d27;
+}
+
+.stat-label{
+    display:block;
+    margin-bottom:5px;
+    color:var(--muted);
+    font-size:11px;
+}
+
+.stat-box strong{
+    display:block;
+    overflow:hidden;
+    color:var(--text);
+    font-family:var(--font-display);
+    font-size:15px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.session-score{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:10px;
+    background:rgba(24,179,196,.1);
+    color:var(--you-light);
+    font-size:13px;
+}
+
+.session-score strong{
+    color:var(--text);
+}
 
     .rematch-btn{
     width:100%;
@@ -981,7 +1042,31 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         <div class="result-text">Victory</div>
         <div id="resultSub" class="result-sub"></div>
 
-        <div class="result-actions">
+<div class="match-stats">
+    <div class="stats-title">Match Stats</div>
+
+    <div class="stats-grid">
+        <div class="stat-box">
+            <span class="stat-label">Most Used Card</span>
+            <strong id="statMostUsed">None</strong>
+        </div>
+
+        <div class="stat-box">
+            <span class="stat-label">Gold Spent</span>
+            <strong id="statGoldSpent">0</strong>
+        </div>
+    </div>
+
+    <div class="session-score">
+        <span>Session</span>
+        <strong>
+            <span id="statWins">0</span> Wins ·
+            <span id="statLosses">0</span> Losses
+        </strong>
+    </div>
+</div>
+
+<div class="result-actions">
     <button id="rematchBtn" class="rematch-btn">
         Play Again
     </button>
