@@ -617,15 +617,7 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     stroke-linejoin:round;
 }
 
-.tower-impact{
-    opacity:0;
-    pointer-events:none;
-}
 
-.tower-impact circle{
-    fill:#fff;
-    filter:blur(2px);
-}
 
 .tower-damage{
     opacity:0;
@@ -670,12 +662,6 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         cubic-bezier(.2,.9,.35,1);
 }
 
-.tower-hit .tower-impact{
-    animation:
-        towerFlash
-        .36s
-        ease-out;
-}
 
 .tower-hit .tower-damage{
     animation:
@@ -733,6 +719,16 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         forwards;
 }
 
+.tower-gone .tower-shake,
+.tower-gone .tower-health{
+    display:none;
+}
+
+.tower-gone .tower-ruins{
+    opacity:1;
+    transform:scale(1);
+}
+    
 @keyframes towerHit{
     0%{
         transform:translateX(0) rotate(0);
@@ -764,21 +760,6 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
     }
 }
 
-@keyframes towerFlash{
-    0%{
-        opacity:0;
-        transform:scale(.4);
-    }
-
-    22%{
-        opacity:.95;
-    }
-
-    100%{
-        opacity:0;
-        transform:scale(1.55);
-    }
-}
 
 @keyframes towerDamagePop{
     0%{
