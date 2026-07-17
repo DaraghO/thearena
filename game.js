@@ -67,6 +67,131 @@ function ref()
 {
     return doc(db, "rooms", roomId);
 }
+function emptyPlayerStats(){
+    return {
+        cardUses: {},
+        goldSpent: 0
+    };
+}
+
+function emptyMatchStats(){
+    return {
+        player1: emptyPlayerStats(),
+        player2: emptyPlayerStats()
+    };
+}
+
+function emptySessionScore(){
+    return {
+        player1: 0,
+        player2: 0
+    };
+}
+
+function getMostUsedCard(cardUses){
+    const entries = Object.entries(cardUses || {});
+
+    if(entries.length === 0)
+        return "None";
+
+    const highest = Math.max(
+        ...entries.map(([, count]) => count)
+    );
+
+    if(highest <= 0)
+        return "None";
+
+    const names = entries
+        .filter(([, count]) => count === highest)
+        .map(([cardId]) => {
+            const card = cards.find(c => c.id === cardId);
+            return card?.name || cardId;
+        });
+
+    return `${names.join(" / ")} · ${highest}`;
+}
+
+function renderStats(game, me){
+    const myStats =
+        game.matchStats?.[me] || emptyPlayerStats();
+
+    const opponent =
+        me === "player1"
+            ? "player2"
+            : "player1";
+
+    const session =
+        game.sessionScore || emptySessionScore();
+
+    const mostUsed =
+        document.getElementById("statMostUsed");
+
+    const goldSpent =
+        document.getElementById("statGoldSpent");
+
+    const wins =
+        document.getElementById("statWins");
+
+    const losses =
+        document.getElementById("statLosses");
+
+    if(mostUsed)
+        mostUsed.textContent =
+            getMostUsedCard(myStats.cardUses);
+
+    if(goldSpent)
+        goldSpent.textContent =
+            myStats.goldSpent || 0;
+
+    if(wins)
+        wins.textContent =
+            session[me] || 0;
+
+    if(losses)
+        losses.textContent =
+            session[opponent] || 0;
+}
+async function recordMatchResult(){
+    if(!roomId)
+        return;
+
+    await runTransaction(db, async tx => {
+        const snapshot = await tx.get(ref());
+
+        if(!snapshot.exists())
+            return;
+
+        const room = snapshot.data();
+        const game = room.game;
+
+        if(!game || game.phase !== "ended")
+            return;
+
+        if(game.resultRecorded === true)
+            return;
+
+        const score = {
+            player1:
+                game.sessionScore?.player1 || 0,
+
+            player2:
+                game.sessionScore?.player2 || 0
+        };
+
+        if(
+            game.winner === "player1" ||
+            game.winner === "player2"
+        ){
+            score[game.winner]++;
+        }
+
+        tx.update(ref(), {
+            "game.sessionScore": score,
+            "game.resultRecorded": true
+        });
+    });
+}
+
 async function deleteCurrentRoom()
 {
     if(!roomId)
@@ -135,7 +260,9 @@ hidePlayerLeft();
 }
 
 /* ---- new game on restart ---- */ 
-function newGameState(){
+function newGameState(
+    sessionScore = emptySessionScore()
+){
     const now = Date.now();
 
     return {
@@ -147,6 +274,15 @@ function newGameState(){
 
         battle: null,
         winner: null,
+
+        matchStats: emptyMatchStats(),
+
+        sessionScore: {
+            player1: sessionScore.player1 || 0,
+            player2: sessionScore.player2 || 0
+        },
+
+        resultRecorded: false,
 
         rematch: {
             player1: false,
@@ -408,6 +544,9 @@ function render(room){
     }
 
     if(g.phase === "ended"){
+    recordMatchResult();
+    renderStats(g, me);
+
     stopReplay();
     setTrayLocked(true);
 
@@ -564,9 +703,34 @@ async function resolvePhase(){
         Math.min(BATTLE_SECONDS, matchRemaining);
 
     const r =
-        resolveBattle(g, allowedBattleDuration);
+    resolveBattle(g, allowedBattleDuration);
 
-    let endWinner = r.winner;
+const matchStats = structuredClone(
+    g.matchStats || emptyMatchStats()
+);
+
+for(const player of ["player1", "player2"]){
+    const cardId = r.played?.[player];
+
+    if(!cardId)
+        continue;
+
+    const card = cards.find(
+        item => item.id === cardId
+    );
+
+    if(!card)
+        continue;
+
+    const playerStats = matchStats[player];
+
+    playerStats.cardUses[cardId] =
+        (playerStats.cardUses[cardId] || 0) + 1;
+
+    playerStats.goldSpent += card.cost;
+}
+
+let endWinner = r.winner;
 
     // If this battle reaches the three-minute limit without
     // destroying a King Tower, decide using destroyed towers.
@@ -577,10 +741,11 @@ async function resolvePhase(){
         endWinner = towerCountWinner(r.towers);
     }
 
-    await updateDoc(ref(), {
-        "game.phase": "battle",
+   await updateDoc(ref(), {
+    "game.phase": "battle",
+    "game.matchStats": matchStats,
 
-        "game.battle": {
+    "game.battle": {
             frames: r.frames,
             startAt: Date.now(),
             duration: r.duration,
@@ -629,6 +794,10 @@ async function requestRematch(){
     if(latestRoom.game.phase !== "ended")
         return;
 
+    // Ensure the finished match is added to the session score
+    // before either player can trigger the restart.
+    await recordMatchResult();
+
     await updateDoc(ref(), {
         [`game.rematch.${self()}`]: true
     });
@@ -636,16 +805,21 @@ async function requestRematch(){
 
 
 async function restartMatch(){
-    await runTransaction(db, async (tx) => {
+    await runTransaction(db, async tx => {
         const snap = await tx.get(ref());
+
+        if(!snap.exists())
+            return;
+
         const room = snap.data();
 
         if(!room || !room.game)
             return;
 
-        const rematch = room.game.rematch || {};
+        const oldGame = room.game;
+        const rematch = oldGame.rematch || {};
 
-        if(room.game.phase !== "ended")
+        if(oldGame.phase !== "ended")
             return;
 
         if(
@@ -655,12 +829,19 @@ async function restartMatch(){
             return;
         }
 
+        // Do not restart until the finished match has
+        // actually been added to the session score.
+        if(oldGame.resultRecorded !== true)
+            return;
+
         tx.update(ref(), {
-            game: newGameState()
+            game: newGameState(
+                oldGame.sessionScore ||
+                emptySessionScore()
+            )
         });
     });
 }
-
 
 /* ---------------- LOCAL COUNTDOWNS ---------------- */
 setInterval(() => {
