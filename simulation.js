@@ -201,8 +201,20 @@ else{
     if(winner){
         frames.push(frameSnapshot(field, towers));
     }
-    gold.player1 = Math.min(GOLD_CAP, gold.player1 + PASSIVE_GOLD);
-    gold.player2 = Math.min(GOLD_CAP, gold.player2 + PASSIVE_GOLD);
+    ["player1", "player2"].forEach(player => {
+    const skipped =
+        played[player] === null;
+
+    const goldAward =
+        skipped
+            ? PASSIVE_GOLD * 2
+            : PASSIVE_GOLD;
+
+    gold[player] = Math.min(
+        GOLD_CAP,
+        gold[player] + goldAward
+    );
+});
 
    const actualDuration = Math.max(
     DT,
