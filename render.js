@@ -54,6 +54,7 @@ function rigMarkup(cardId, team, state){
 const LANE_X = { lane1:110, lane2:200, lane3:290 };
 const Y_NEAR = 440, Y_FAR = 180;
 const TOWER_MAX = { king:3000, other:1000 };
+let skipNextStaticTowerAnimation = false;
 
 function displayX(x, self){ return self === "player1" ? x : 1 - x; }
 function clamp01(v){ return Math.max(0, Math.min(1, v)); }
@@ -843,10 +844,12 @@ export function renderBoard(towers, troops, self){
 
             <g class="tower-layer">
                 ${towersMarkup(
-                    towers,
-                    self,
-                    staticPreviousTowers
-                )}
+    towers,
+    self,
+    skipNextStaticTowerAnimation
+        ? towers
+        : staticPreviousTowers
+)}
             </g>
 
             <g class="troop-front-layer">
@@ -972,8 +975,10 @@ if(el.parentNode !== targetLayer)
     }
 }
 
-export function resetBattle(){ scene = null; }
-
+export function resetBattle(){
+    scene = null;
+    skipNextStaticTowerAnimation = true;
+}
 export function setMatchTime(seconds)
 {
     const el = document.getElementById("matchClock");
