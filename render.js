@@ -990,14 +990,41 @@ const frontLayer =
     scene.els.set(tr.id, el);
     el.dataset.state = tr.state;
 }
-        if(el.dataset.state !== tr.state){
-            const rig = el.querySelector(".rig");
-            if(rig){
-                rig.classList.remove("state-walk","state-attack","state-die","state-idle","state-pose");
-                rig.classList.add("state-" + tr.state);
-            }
-            el.dataset.state = tr.state;
+       if(el.dataset.state !== tr.state){
+
+    const rig = el.querySelector(".rig");
+
+    if(rig){
+        rig.classList.remove(
+            "state-walk",
+            "state-attack",
+            "state-die",
+            "state-idle",
+            "state-pose"
+        );
+
+        rig.classList.add("state-" + tr.state);
+    }
+
+    if(tr.cardId === "dragon"){
+
+        const image =
+            el.querySelector("image");
+
+        if(image){
+
+            image.setAttribute(
+                "href",
+                DRAGON_ANIMS[tr.state] ??
+                DRAGON_ANIMS.idle
+            );
+
         }
+
+    }
+
+    el.dataset.state = tr.state;
+}
        const targetLayer =
     tr.owner === self
         ? frontLayer
