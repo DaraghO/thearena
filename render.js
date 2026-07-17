@@ -647,12 +647,13 @@ export function initBattle(self){
         return;
 
     board.innerHTML =
-        FIELD +
-        LANES +
-        `
-            <g class="tower-layer"></g>
-            <g class="troop-layer"></g>
-        `;
+    FIELD +
+    LANES +
+    `
+        <g class="troop-back-layer"></g>
+        <g class="tower-layer"></g>
+        <g class="troop-front-layer"></g>
+    `;
 
     scene = {
         els: new Map(),
@@ -686,8 +687,11 @@ if(key !== scene.towersKey){
     scene.towersKey = key;
 }
 
-    const layer = board.querySelector(".troop-layer");
-    const bMap = {};
+const backLayer =
+    board.querySelector(".troop-back-layer");
+
+const frontLayer =
+    board.querySelector(".troop-front-layer");    const bMap = {};
     if(b) b.troops.forEach(tr => bMap[tr.id] = tr);
 
     const seen = new Set();
@@ -699,12 +703,26 @@ if(key !== scene.towersKey){
 
         let el = scene.els.get(tr.id);
         if(!el){
-            layer.insertAdjacentHTML("beforeend",
-                `<g data-tid="${tr.id}">${rigMarkup(tr.cardId, team, tr.state)}${troopHpBar(tr.hpRatio)}</g>`);
-            el = layer.querySelector(`[data-tid="${tr.id}"]`);
-            scene.els.set(tr.id, el);
-            el.dataset.state = tr.state;
-        }
+    const targetLayer =
+        tr.owner === self
+            ? frontLayer
+            : backLayer;
+
+    targetLayer.insertAdjacentHTML(
+        "beforeend",
+        `<g data-tid="${tr.id}">
+            ${rigMarkup(tr.cardId, team, tr.state)}
+            ${troopHpBar(tr.hpRatio)}
+        </g>`
+    );
+
+    el = targetLayer.querySelector(
+        `[data-tid="${tr.id}"]`
+    );
+
+    scene.els.set(tr.id, el);
+    el.dataset.state = tr.state;
+}
         if(el.dataset.state !== tr.state){
             const rig = el.querySelector(".rig");
             if(rig){
@@ -713,6 +731,13 @@ if(key !== scene.towersKey){
             }
             el.dataset.state = tr.state;
         }
+       const targetLayer =
+    tr.owner === self
+        ? frontLayer
+        : backLayer;
+
+if(el.parentNode !== targetLayer)
+    targetLayer.appendChild(el);
         const { tx, ty, sc } = placeTroop(tr.lane, x, self);
         el.setAttribute("transform", `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})`);
         updateHp(el, tr.hpRatio);
