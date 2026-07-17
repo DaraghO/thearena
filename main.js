@@ -7,6 +7,7 @@ import {
     onSnapshot,
     addDoc,
     updateDoc,
+    deleteDoc,
     doc,
     getDocs,
     serverTimestamp
@@ -19,6 +20,7 @@ await login();
 const roomsDiv = document.getElementById("rooms");
 const createButton = document.getElementById("createRoom");
 let currentRoomId = null;
+let hostedRoomId = null;
 
 // Listen for rooms
 
@@ -26,97 +28,187 @@ onSnapshot(collection(db, "rooms"), (snapshot)=>{
 
     roomsDiv.innerHTML = "";
 
-    let open = 0;
+    let visibleRooms = 0;
+    hostedRoomId = null;
 
     snapshot.forEach((roomDoc)=>{
 
         const room = roomDoc.data();
+        const isMine = room.host === auth.currentUser.uid;
+        const isWaiting = room.state === "waiting";
+        const isFull = room.player2 !== null;
 
-        if(room.host === auth.currentUser.uid)
+        // Only display rooms which are waiting for a player.
+        if(!isWaiting || isFull)
             return;
 
-        if(room.player2 !== null)
-            return;
+        visibleRooms++;
 
-        open++;
+        if(isMine)
+            hostedRoomId = roomDoc.id;
 
-        const el = document.createElement("div");
-        el.className = "room";
-        el.innerHTML = `
+        const element = document.createElement("div");
+        element.className = "room";
+
+        element.innerHTML = `
             <span class="dot"></span>
+
             <div class="info">
                 <div class="name"></div>
-                <div class="sub">Host waiting</div>
+                <div class="sub"></div>
             </div>
-            <button class="btn-join">Join</button>`;
 
-        el.querySelector(".name").textContent = room.name;
+            <div class="room-actions"></div>
+        `;
 
-        el.querySelector(".btn-join").onclick = async () => {
+        element.querySelector(".name").textContent = room.name;
 
-            currentRoomId = roomDoc.id;
-            startGame(currentRoomId);
+        const sub = element.querySelector(".sub");
+        const actions = element.querySelector(".room-actions");
 
-            await updateDoc(doc(db, "rooms", roomDoc.id), {
-                player2: auth.currentUser.uid,
-                state: "playing"
-            });
+        if(isMine){
+            sub.textContent = "Your room · waiting for opponent";
 
-            document.getElementById("status").textContent = "Joined room: " + room.name;
-        };
+            const closeButton = document.createElement("button");
+            closeButton.className = "btn-close-room";
+            closeButton.textContent = "Close";
 
-        roomsDiv.appendChild(el);
+            closeButton.onclick = async () => {
+                closeButton.disabled = true;
 
+                try{
+                    await deleteDoc(doc(db, "rooms", roomDoc.id));
+
+                    if(currentRoomId === roomDoc.id)
+                        currentRoomId = null;
+
+                    hostedRoomId = null;
+
+                    document.getElementById("status").textContent =
+                        "Room closed.";
+                }
+                catch(error){
+                    console.error("Could not close room:", error);
+                    closeButton.disabled = false;
+                }
+            };
+
+            actions.appendChild(closeButton);
+        }
+        else{
+            sub.textContent = "Host waiting";
+
+            const joinButton = document.createElement("button");
+            joinButton.className = "btn-join";
+            joinButton.textContent = "Join";
+
+            joinButton.onclick = async () => {
+                currentRoomId = roomDoc.id;
+
+                startGame(currentRoomId);
+
+                await updateDoc(doc(db, "rooms", roomDoc.id), {
+                    player2: auth.currentUser.uid,
+                    state: "playing"
+                });
+
+                document.getElementById("status").textContent =
+                    "Joined room: " + room.name;
+            };
+
+            actions.appendChild(joinButton);
+        }
+
+        roomsDiv.appendChild(element);
     });
 
-    const countEl = document.getElementById("roomCount");
-    if(countEl)
-        countEl.textContent = open + (open === 1 ? " waiting" : " waiting");
+    const countElement = document.getElementById("roomCount");
 
-    if(open === 0)
-        roomsDiv.innerHTML = `<div class="empty">No open rooms. Create one to start.</div>`;
+    if(countElement){
+        countElement.textContent =
+            visibleRooms +
+            (visibleRooms === 1 ? " room" : " rooms");
+    }
 
+    if(visibleRooms === 0){
+        roomsDiv.innerHTML =
+            `<div class="empty">No open rooms. Create one to start.</div>`;
+    }
 });
 
 
 // Create room
 
-createButton.onclick = async ()=>{
+createButton.onclick = async () => {
 
-    const roomName = document.getElementById("roomName").value.trim();
+    const roomName =
+        document.getElementById("roomName").value.trim();
 
-    if(roomName === "")
-    {
+    if(roomName === ""){
         alert("Please enter a room name.");
         return;
     }
 
-    const roomsSnapshot = await getDocs(collection(db, "rooms"));
+    createButton.disabled = true;
 
-    let exists = false;
+    try{
+        const roomsSnapshot =
+            await getDocs(collection(db, "rooms"));
 
-    roomsSnapshot.forEach((roomDoc)=>{
-        if(roomDoc.data().name.toLowerCase() === roomName.toLowerCase())
-            exists = true;
-    });
+        let duplicateName = false;
+        let existingHostedRoom = null;
 
-    if(exists)
-    {
-        alert("A room with that name already exists.");
-        return;
+        roomsSnapshot.forEach((roomDoc) => {
+            const room = roomDoc.data();
+
+            if(
+                room.name.toLowerCase() === roomName.toLowerCase()
+            ){
+                duplicateName = true;
+            }
+
+            if(
+                room.host === auth.currentUser.uid &&
+                room.state === "waiting"
+            ){
+                existingHostedRoom = roomDoc;
+            }
+        });
+
+        if(existingHostedRoom){
+            alert(
+                "You already have an open room. Close it before creating another."
+            );
+            return;
+        }
+
+        if(duplicateName){
+            alert("A room with that name already exists.");
+            return;
+        }
+
+        const roomReference =
+            await addDoc(collection(db, "rooms"), {
+                name: roomName,
+                host: auth.currentUser.uid,
+                player2: null,
+                state: "waiting",
+                created: serverTimestamp()
+            });
+
+        currentRoomId = roomReference.id;
+        hostedRoomId = roomReference.id;
+
+        startGame(currentRoomId);
+
+        document.getElementById("status").textContent =
+            "You created: " + roomName;
     }
-
-    const roomRef = await addDoc(collection(db, "rooms"), {
-        name: roomName,
-        host: auth.currentUser.uid,
-        player2: null,
-        state: "waiting",
-        created: serverTimestamp()
-    });
-
-    currentRoomId = roomRef.id;
-    startGame(currentRoomId);
-
-    document.getElementById("status").textContent = "You created: " + roomName;
-
+    catch(error){
+        console.error("Could not create room:", error);
+        alert("The room could not be created.");
+    }
+    finally{
+        createButton.disabled = false;
+    }
 };
