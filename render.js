@@ -480,19 +480,29 @@ const FIELD = `
         </pattern>
 
         <pattern
-            id="riverTexture"
-            width="22"
-            height="18"
-            patternUnits="userSpaceOnUse"
-            patternTransform="skewX(-18)"
-        >
-            <path
-                d="M 0 4 H 11"
-                stroke="rgba(255,255,255,.16)"
-                stroke-width="3"
-                stroke-linecap="round"
-            />
-        </pattern>
+    id="riverTexture"
+    width="22"
+    height="18"
+    patternUnits="userSpaceOnUse"
+    patternTransform="skewX(-18)"
+>
+    <animateTransform
+        attributeName="patternTransform"
+        type="translate"
+        from="0 0"
+        to="22 0"
+        dur="3s"
+        repeatCount="indefinite"
+        additive="sum"
+    />
+
+    <path
+        d="M 0 4 H 11"
+        stroke="rgba(255,255,255,.16)"
+        stroke-width="3"
+        stroke-linecap="round"
+    />
+</pattern>
 
         <pattern
             id="bridgeBoards"
@@ -811,17 +821,38 @@ export function renderBoard(towers, troops, self){
     if(!board)
         return;
 
+    const backTroops =
+        troops
+            .filter(troop => troop.owner !== self)
+            .map(troop => placedTroop(troop, self))
+            .join("");
+
+    const frontTroops =
+        troops
+            .filter(troop => troop.owner === self)
+            .map(troop => placedTroop(troop, self))
+            .join("");
+
     board.innerHTML =
         FIELD +
         LANES +
-        towersMarkup(
-            towers,
-            self,
-            staticPreviousTowers
-        ) +
-        troops
-            .map(t => placedTroop(t, self))
-            .join("");
+        `
+            <g class="troop-back-layer">
+                ${backTroops}
+            </g>
+
+            <g class="tower-layer">
+                ${towersMarkup(
+                    towers,
+                    self,
+                    staticPreviousTowers
+                )}
+            </g>
+
+            <g class="troop-front-layer">
+                ${frontTroops}
+            </g>
+        `;
 
     staticPreviousTowers =
         structuredClone(towers);
