@@ -87,6 +87,33 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
 .btn-join:active{ background:var(--you-dark); color:#fff; }
 .empty{ color:var(--muted); font-size:13px; padding:8px 2px; }
 
+/* --- room deletion --- */
+.room-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.btn-close-room{
+    background:transparent;
+    color:var(--enemy-light);
+    border:1.5px solid var(--enemy-dark);
+    border-radius:10px;
+    padding:9px 14px;
+    font-weight:700;
+    font-size:13px;
+}
+
+.btn-close-room:active{
+    background:var(--enemy-dark);
+    color:#fff;
+}
+
+.btn-close-room:disabled{
+    opacity:.5;
+    cursor:default;
+}
+    
 /* ---------- ARENA ---------- */
 .arena{
     flex:1;
