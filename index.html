@@ -682,14 +682,9 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         alternate;
 }
 
-.tower-critical .tower-smoke{
-    animation:
-        towerSmoke
-        1.4s
-        ease-out
-        infinite;
+.tower-smoke{
+    display:none;
 }
-
 .tower-destroyed .tower-shake{
     animation:
         towerCollapse
@@ -804,24 +799,6 @@ button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
         filter:
             drop-shadow(0 0 10px rgba(239,90,60,.8))
             drop-shadow(0 5px 5px rgba(0,0,0,.35));
-    }
-}
-
-@keyframes towerSmoke{
-    0%{
-        opacity:0;
-        transform:translateY(8px) scale(.5);
-    }
-
-    35%{
-        opacity:.72;
-    }
-
-    100%{
-        opacity:0;
-        transform:
-            translate(8px,-26px)
-            scale(1.55);
     }
 }
 
