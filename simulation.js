@@ -1,11 +1,13 @@
 // simulation.js
-// Pure battle resolution. No Firestore, no DOM. Host calls resolveBattle(game).
+// Pure battle resolution. No Firestore, no DOM.
+// Host calls resolveBattle(game).
 
 import { cards } from "./cards.js";
 
 export const BATTLE_SECONDS = 10;
 export const DT = 0.1;
-const TILES = 18;          // lane length in tiles; tune game feel here
+
+const TILES = 18;
 const T = 1 / TILES;
 
 const PLAYER1_LANE_TOWER_X = 1;
@@ -17,21 +19,39 @@ const PLAYER2_KING_TOWER_X = -0.18;
 const MIN_BATTLE_X = PLAYER2_KING_TOWER_X;
 const MAX_BATTLE_X = PLAYER1_KING_TOWER_X;
 
-const KILL_GOLD = { common:1, rare:3, legendary:5 };
+const BRIDGE_X = 0.5;
+
+const KILL_GOLD = {
+    common: 1,
+    rare: 3,
+    legendary: 5
+};
+
 const GOLD_CAP = 25;
 const PASSIVE_GOLD = 2;
 
 const byId = {};
-cards.forEach(c => byId[c.id] = c);
+
+cards.forEach(card => {
+    byId[card.id] = card;
+});
 
 let _uid = 0;
-function newId(){ return "t" + Date.now().toString(36) + "_" + (_uid++); }
+
+function newId(){
+    return (
+        "t" +
+        Date.now().toString(36) +
+        "_" +
+        (_uid++)
+    );
+}
 
 function spawnTroop(owner, cardId, lane){
-    const c = byId[cardId];
+    const card = byId[cardId];
 
     return {
-        id:newId(),
+        id: newId(),
         owner,
         cardId,
         lane,
@@ -41,39 +61,77 @@ function spawnTroop(owner, cardId, lane){
                 ? 0
                 : 1,
 
-        hp:c.health,
-        maxHp:c.health,
+        hp: card.health,
+        maxHp: card.health,
 
-        state:"walk",
-        cd:0,
+        state: "walk",
+        cd: 0,
 
-        targetId:null,
-        targetEngaged:false
+        targetId: null,
+        targetEngaged: false,
+
+        mineTimer: 0
     };
 }
 
-function cloneField(bf){
-    const out = { lane1:[], lane2:[], lane3:[] };
-    ["lane1","lane2","lane3"].forEach(l => out[l] = (bf[l]||[]).map(t => ({...t})));
-    return out;
+function cloneField(battlefield){
+    const output = {
+        lane1: [],
+        lane2: [],
+        lane3: []
+    };
+
+    ["lane1", "lane2", "lane3"].forEach(lane => {
+        output[lane] =
+            (battlefield[lane] || []).map(troop => ({
+                ...troop
+            }));
+    });
+
+    return output;
 }
 
 function frameSnapshot(field, towers){
     const troops = [];
-    ["lane1","lane2","lane3"].forEach(l => {
-        field[l].forEach(t => troops.push({
-            id:t.id, owner:t.owner, cardId:t.cardId, lane:l,
-            x:+t.x.toFixed(4), state:t.state,
-            hpRatio:+(t.hp / t.maxHp).toFixed(3)
-        }));
+
+    ["lane1", "lane2", "lane3"].forEach(lane => {
+        field[lane].forEach(troop => {
+            troops.push({
+                id: troop.id,
+                owner: troop.owner,
+                cardId: troop.cardId,
+                lane,
+
+                x: +troop.x.toFixed(4),
+                state: troop.state,
+
+                hpRatio:
+                    +(troop.hp / troop.maxHp).toFixed(3)
+            });
+        });
     });
+
     return {
         troops,
-        towers: { player1:{...towers.player1}, player2:{...towers.player2} }
+
+        towers: {
+            player1: {
+                ...towers.player1
+            },
+
+            player2: {
+                ...towers.player2
+            }
+        }
     };
 }
 
-const LANE_TOWER = { lane1:"left", lane2:"middle", lane3:"right" };
+const LANE_TOWER = {
+    lane1: "left",
+    lane2: "middle",
+    lane3: "right"
+};
+
 const LANES = [
     "lane1",
     "lane2",
@@ -81,9 +139,9 @@ const LANES = [
 ];
 
 const ADJACENT_LANES = {
-    lane1:["lane2"],
-    lane2:["lane1", "lane3"],
-    lane3:["lane2"]
+    lane1: ["lane2"],
+    lane2: ["lane1", "lane3"],
+    lane3: ["lane2"]
 };
 
 function findLivingTroop(field, id){
@@ -147,6 +205,9 @@ function acquireTarget(
     card,
     detectionRange
 ){
+    /*
+        Always search the troop's own lane first.
+    */
     const sameLaneTarget =
         nearestTargetInLanes(
             field,
@@ -155,15 +216,13 @@ function acquireTarget(
             detectionRange
         );
 
-    /*
-        The troop's own lane always has priority.
-
-        Even if an adjacent-lane enemy is closer,
-        an available same-lane enemy is selected first.
-    */
     if(sameLaneTarget)
         return sameLaneTarget;
 
+    /*
+        Only cards such as the Archer may search
+        neighbouring lanes.
+    */
     if(!card.adjacentLaneTargeting)
         return null;
 
@@ -207,260 +266,452 @@ function damageTroop(
     attacker.targetId = null;
     attacker.targetEngaged = false;
 }
-export function resolveBattle(game, requestedDuration = BATTLE_SECONDS){
-    const field = cloneField(game.battlefield);
-    const towers = {
-        player1:{...game.towers.player1},
-        player2:{...game.towers.player2}
-    };
-    const gold = { player1:game.player1.gold, player2:game.player2.gold };
-    const played = { player1:null, player2:null };
 
-    // spawns from locked selections (selectedIndex points into that player's hand)
-    ["player1","player2"].forEach(p => {
-        const idx = game[p].selectedIndex, lane = game[p].selectedLane;
-        if(idx === null || idx === undefined || !lane) return;
-        const c = (game[p].hand || [])[idx];
-        if(!c || c.type !== "unit" || gold[p] < c.cost) return;
-        gold[p] -= c.cost;
-        field[lane].push(spawnTroop(p, c.id, lane));
-        played[p] = c.id;
-    });
+function updateGoldMiner(
+    troop,
+    card,
+    gold
+){
+    const distanceToBridge =
+        BRIDGE_X - troop.x;
 
-    const frames = [];
-    let winner = null;
-    const steps = Math.max(1, Math.ceil(requestedDuration / DT));
-
-    for(let step=0; step<=steps && !winner; step++){
-        frames.push(frameSnapshot(field, towers));
-        if(step === steps) break;
-
-        ["lane1","lane2","lane3"].forEach(lane => {
-            const troops = field[lane];
-
-            troops.forEach(t => {
-                if(t.hp <= 0) return;
-                const c = byId[t.cardId];
-                const foe = t.owner === "player1" ? "player2" : "player1";
-                const fwd = t.owner === "player1" ? 1 : -1;
-
-                const atkR =
-    c.range * T;
-
-const detR =
-    (c.detectRange || c.range) * T;
-
-t.cd =
-    Math.max(
-        0,
-        t.cd - DT
-    );
-
-/*
-    First try to recover the troop's existing locked target.
-
-    This works across lanes because it searches the complete
-    battlefield rather than only the current lane.
-*/
-let target =
-    findLivingTroop(
-        field,
-        t.targetId
-    );
-
-/*
-    The locked target died or no target has been selected yet.
-*/
-if(!target){
-    t.targetId = null;
-    t.targetEngaged = false;
-
-    target =
-        acquireTarget(
-            field,
-            t,
-            c,
-            detR
-        );
-
-    if(target)
-        t.targetId = target.id;
-}
-
-if(target){
-    const targetDistance =
-        Math.abs(
-            target.x -
-            t.x
-        );
+    const movementPerStep =
+        card.speed *
+        T *
+        DT;
 
     /*
-        Normal troops can attack while inside their range.
-
-        Cards with attackLockedTargetAtAnyRange can continue
-        attacking after reaching firing range once, regardless
-        of where the target later moves.
+        Move toward the exact middle of the map.
     */
-    const mayAttack =
-        targetDistance <= atkR ||
-        (
-            c.attackLockedTargetAtAnyRange &&
-            t.targetEngaged
-        );
+    if(
+        Math.abs(distanceToBridge) >
+        movementPerStep
+    ){
+        troop.state = "walk";
 
-    if(mayAttack){
-        t.state = "attack";
+        troop.x +=
+            Math.sign(distanceToBridge) *
+            movementPerStep;
 
-        /*
-            Once this becomes true, the Archer no longer checks
-            the target's distance.
-        */
-        t.targetEngaged = true;
-
-        if(t.cd <= 0){
-            damageTroop(
-                t,
-                target,
-                c,
-                gold
+        troop.x =
+            Math.max(
+                MIN_BATTLE_X,
+                Math.min(
+                    MAX_BATTLE_X,
+                    troop.x
+                )
             );
-        }
 
         return;
     }
 
     /*
-        The target has been selected but has not yet entered
-        attack range.
-
-        Follow its forward position without changing lanes.
-        No nearer enemy can steal the target.
+        The Miner has reached the bridge.
     */
-    t.state = "walk";
+    troop.x = BRIDGE_X;
+    troop.state = "mine";
 
-    t.x +=
-        Math.sign(
-            target.x -
-            t.x
-        ) *
-        c.speed *
-        T *
+    const goldPerSecond =
+        card.goldPerSecond || 0;
+
+    if(goldPerSecond <= 0)
+        return;
+
+    const secondsPerGold =
+        1 / goldPerSecond;
+
+    troop.mineTimer =
+        (troop.mineTimer || 0) +
         DT;
 
-    t.x =
-        Math.max(
-            MIN_BATTLE_X,
+    /*
+        At two gold per second this awards one gold
+        every half-second.
+    */
+    while(
+        troop.mineTimer + 0.000001 >=
+        secondsPerGold
+    ){
+        troop.mineTimer -=
+            secondsPerGold;
+
+        gold[troop.owner] =
             Math.min(
-                MAX_BATTLE_X,
-                t.x
+                GOLD_CAP,
+                gold[troop.owner] + 1
+            );
+    }
+}
+
+export function resolveBattle(
+    game,
+    requestedDuration = BATTLE_SECONDS
+){
+    const field =
+        cloneField(game.battlefield);
+
+    const towers = {
+        player1: {
+            ...game.towers.player1
+        },
+
+        player2: {
+            ...game.towers.player2
+        }
+    };
+
+    const gold = {
+        player1: game.player1.gold,
+        player2: game.player2.gold
+    };
+
+    const played = {
+        player1: null,
+        player2: null
+    };
+
+    /*
+        Spawn the cards selected during the Rest Phase.
+    */
+    ["player1", "player2"].forEach(player => {
+        const selectedIndex =
+            game[player].selectedIndex;
+
+        const lane =
+            game[player].selectedLane;
+
+        if(
+            selectedIndex === null ||
+            selectedIndex === undefined ||
+            !lane
+        ){
+            return;
+        }
+
+        const card =
+            (game[player].hand || [])
+                [selectedIndex];
+
+        if(
+            !card ||
+            card.type !== "unit" ||
+            gold[player] < card.cost
+        ){
+            return;
+        }
+
+        gold[player] -= card.cost;
+
+        field[lane].push(
+            spawnTroop(
+                player,
+                card.id,
+                lane
             )
         );
 
-    return;
-}
+        played[player] = card.id;
+    });
 
+    const frames = [];
+    let winner = null;
+
+    const steps =
+        Math.max(
+            1,
+            Math.ceil(
+                requestedDuration / DT
+            )
+        );
+
+    for(
+        let step = 0;
+        step <= steps && !winner;
+        step++
+    ){
+        frames.push(
+            frameSnapshot(
+                field,
+                towers
+            )
+        );
+
+        if(step === steps)
+            break;
+
+        LANES.forEach(lane => {
+            const troops =
+                field[lane];
+
+            troops.forEach(troop => {
+                if(troop.hp <= 0)
+                    return;
+
+                const card =
+                    byId[troop.cardId];
+
+                if(!card)
+                    return;
+
+                const foe =
+                    troop.owner === "player1"
+                        ? "player2"
+                        : "player1";
+
+                /*
+                    Gold Miner has its own behaviour.
+
+                    It does not acquire targets, attack troops
+                    or damage towers.
+                */
+                if(card.behaviour === "goldMiner"){
+                    updateGoldMiner(
+                        troop,
+                        card,
+                        gold
+                    );
+
+                    return;
+                }
+
+                const attackRange =
+                    card.range * T;
+
+                const detectionRange =
+                    (
+                        card.detectRange ||
+                        card.range
+                    ) * T;
+
+                troop.cd =
+                    Math.max(
+                        0,
+                        troop.cd - DT
+                    );
+
+                /*
+                    Recover the troop's existing locked target.
+                */
+                let target =
+                    findLivingTroop(
+                        field,
+                        troop.targetId
+                    );
+
+                /*
+                    The target died, or no target has been
+                    selected yet.
+                */
+                if(!target){
+                    troop.targetId = null;
+                    troop.targetEngaged = false;
+
+                    target =
+                        acquireTarget(
+                            field,
+                            troop,
+                            card,
+                            detectionRange
+                        );
+
+                    if(target)
+                        troop.targetId = target.id;
+                }
+
+                if(target){
+                    const targetDistance =
+                        Math.abs(
+                            target.x -
+                            troop.x
+                        );
+
+                    const mayAttack =
+                        targetDistance <= attackRange ||
+                        (
+                            card.attackLockedTargetAtAnyRange &&
+                            troop.targetEngaged
+                        );
+
+                    if(mayAttack){
+                        troop.state = "attack";
+                        troop.targetEngaged = true;
+
+                        if(troop.cd <= 0){
+                            damageTroop(
+                                troop,
+                                target,
+                                card,
+                                gold
+                            );
+                        }
+
+                        return;
+                    }
+
+                    /*
+                        Follow the locked target's horizontal
+                        position without changing lanes.
+                    */
+                    troop.state = "walk";
+
+                    troop.x +=
+                        Math.sign(
+                            target.x -
+                            troop.x
+                        ) *
+                        card.speed *
+                        T *
+                        DT;
+
+                    troop.x =
+                        Math.max(
+                            MIN_BATTLE_X,
+                            Math.min(
+                                MAX_BATTLE_X,
+                                troop.x
+                            )
+                        );
+
+                    return;
+                }
+
+                /*
+                    There is no troop target, so continue
+                    toward the relevant enemy tower.
+                */
                 const laneTower =
-    LANE_TOWER[lane];
+                    LANE_TOWER[lane];
 
-const towerAlive =
-    towers[foe][laneTower] > 0;
+                const towerAlive =
+                    towers[foe][laneTower] > 0;
 
-const laneTowerGoal =
-    t.owner === "player1"
-        ? PLAYER1_LANE_TOWER_X
-        : PLAYER2_LANE_TOWER_X;
+                const laneTowerGoal =
+                    troop.owner === "player1"
+                        ? PLAYER1_LANE_TOWER_X
+                        : PLAYER2_LANE_TOWER_X;
 
-const kingTowerGoal =
-    t.owner === "player1"
-        ? PLAYER1_KING_TOWER_X
-        : PLAYER2_KING_TOWER_X;
+                const kingTowerGoal =
+                    troop.owner === "player1"
+                        ? PLAYER1_KING_TOWER_X
+                        : PLAYER2_KING_TOWER_X;
 
-const goal =
-    towerAlive
-        ? laneTowerGoal
-        : kingTowerGoal;
+                const goal =
+                    towerAlive
+                        ? laneTowerGoal
+                        : kingTowerGoal;
 
-const distGoal =
-    Math.abs(goal - t.x);
+                const distanceToGoal =
+                    Math.abs(
+                        goal -
+                        troop.x
+                    );
 
-if(distGoal <= atkR){
-    t.state = "attack";
+                if(distanceToGoal <= attackRange){
+                    troop.state = "attack";
 
-    if(t.cd <= 0){
-        t.cd = 1 / c.attackSpeed;
+                    if(troop.cd <= 0){
+                        troop.cd =
+                            1 / card.attackSpeed;
 
-        if(towerAlive){
-            towers[foe][laneTower] =
-                Math.max(
-                    0,
-                    towers[foe][laneTower] -
-                    c.damage
-                );
-        }
-        else{
-            towers[foe].king =
-                Math.max(
-                    0,
-                    towers[foe].king -
-                    c.damage
-                );
+                        if(towerAlive){
+                            towers[foe][laneTower] =
+                                Math.max(
+                                    0,
+                                    towers[foe][laneTower] -
+                                    card.damage
+                                );
+                        }
+                        else{
+                            towers[foe].king =
+                                Math.max(
+                                    0,
+                                    towers[foe].king -
+                                    card.damage
+                                );
 
-            if(towers[foe].king <= 0)
-                winner = t.owner;
-        }
-    }
-}
-else{
-    t.state = "walk";
+                            if(towers[foe].king <= 0){
+                                winner =
+                                    troop.owner;
+                            }
+                        }
+                    }
+                }
+                else{
+                    troop.state = "walk";
 
-    t.x +=
-        Math.sign(goal - t.x) *
-        c.speed *
-        T *
-        DT;
+                    troop.x +=
+                        Math.sign(
+                            goal -
+                            troop.x
+                        ) *
+                        card.speed *
+                        T *
+                        DT;
 
-    t.x = Math.max(
-        MIN_BATTLE_X,
-        Math.min(MAX_BATTLE_X, t.x)
-    );
-}
+                    troop.x =
+                        Math.max(
+                            MIN_BATTLE_X,
+                            Math.min(
+                                MAX_BATTLE_X,
+                                troop.x
+                            )
+                        );
+                }
             });
 
-            field[lane] = troops.filter(t => t.hp > 0);
+            field[lane] =
+                troops.filter(troop =>
+                    troop.hp > 0
+                );
         });
     }
-    // The normal loop stops immediately after a King Tower is destroyed.
-    // Add one final frame so both clients actually render the destroyed tower.
+
+    /*
+        Add one final frame after the King Tower dies
+        so clients can render the destruction.
+    */
     if(winner){
-        frames.push(frameSnapshot(field, towers));
+        frames.push(
+            frameSnapshot(
+                field,
+                towers
+            )
+        );
     }
+
+    /*
+        Normal end-of-turn passive gold.
+    */
     ["player1", "player2"].forEach(player => {
-    const skipped =
-        played[player] === null;
+        const skipped =
+            played[player] === null;
 
-    const goldAward =
-        skipped
-            ? PASSIVE_GOLD * 2
-            : PASSIVE_GOLD;
+        const goldAward =
+            skipped
+                ? PASSIVE_GOLD * 2
+                : PASSIVE_GOLD;
 
-    gold[player] = Math.min(
-        GOLD_CAP,
-        gold[player] + goldAward
-    );
-});
+        gold[player] =
+            Math.min(
+                GOLD_CAP,
+                gold[player] +
+                goldAward
+            );
+    });
 
-   const actualDuration = Math.max(
-    DT,
-    (frames.length - 1) * DT
-);
+    const actualDuration =
+        Math.max(
+            DT,
+            (frames.length - 1) * DT
+        );
 
-return {
-    frames,
-    battlefield: field,
-    towers,
-    gold,
-    played,
-    winner,
-    duration: actualDuration
-};
+    return {
+        frames,
+        battlefield: field,
+        towers,
+        gold,
+        played,
+        winner,
+        duration: actualDuration
+    };
 }
