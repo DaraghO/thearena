@@ -22,8 +22,32 @@ export const cards = [
       cost:5, damage:300, range:3 },
     { id:"healing_potion", name:"Healing Potion", type:"item", rarity:"rare",
       cost:5, healing:400 },
-    { id:"dragon",  name:"Dragon",  type:"unit", rarity:"legendary",
-      cost:10, health:1200, damage:150, speed:2, range:4, detectRange:6, attackSpeed:4 }
+    {
+    id:"dragon",
+    name:"Dragon",
+    type:"unit",
+    rarity:"legendary",
+    cost:10,
+    health:1000,
+    damage:167,
+    speed:2,
+    range:4,
+    detectRange:6,
+    attackSpeed:4
+    },
+    {
+    id:"gold_miner",
+    name:"Gold Miner",
+    type:"unit",
+    rarity:"legendary",
+
+    cost:8,
+    health:3000,
+    speed:3,
+
+    behaviour:"goldMiner",
+    goldPerSecond:2
+    }
 ];
 // fresh random draw each rest phase; duplicates allowed (variety with a small pool)
 export function getRandomUnitCards(amount = 3){
