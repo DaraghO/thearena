@@ -1,6 +1,7 @@
 import { db, auth } from "./firebase.js";
 import { getRandomUnitCards, cards } from "./cards.js";
 import { resolveBattle, BATTLE_SECONDS, DT } from "./simulation.js";
+import { chooseBotMove } from "./bot.js";
 import {
     renderBoard, initBattle, drawBattleFrame, resetBattle,
     drawTopbar, drawHand, setSelectedCard, setSelectedLane,
@@ -52,6 +53,11 @@ function playerKeyFor(room)
     return auth.currentUser.uid === room.host
         ? "player1"
         : "player2";
+}
+
+function isPracticeMode(room = latestRoom)
+{
+    return room?.mode === "practice";
 }
 
 function opponentKeyFor(room)
@@ -409,6 +415,9 @@ async function checkOpponentPresence()
     if(!latestRoom)
         return;
 
+    if(isPracticeMode())
+        return;
+    
     if(latestRoom.state !== "playing")
         return;
 
@@ -457,6 +466,9 @@ async function resolveDisconnectedPlayer()
 
             const room = snapshot.data();
 
+            if(isPracticeMode(room))
+                return;
+            
             if(room.state !== "playing")
                 return;
 
@@ -544,6 +556,16 @@ function flatten(bf, forceState){
 function render(room){
     const g = room.game, me = self();
     drawTopbar(g, me);
+
+    const opponentName =
+        document.getElementById("opponentName");
+
+    if(opponentName){
+        opponentName.textContent =
+            isPracticeMode(room)
+                ? "Bot"
+                : "Opponent";
+    }
 
     reconcilePendingSelection(g, me);
 
@@ -727,8 +749,25 @@ async function resolvePhase(){
     const allowedBattleDuration =
         Math.min(BATTLE_SECONDS, matchRemaining);
 
-    const r =
-    resolveBattle(g, allowedBattleDuration);
+    let gameForBattle = g;
+
+if(isPracticeMode()){
+    const botMove =
+        chooseBotMove(g, "player2");
+
+    gameForBattle = structuredClone(g);
+
+    gameForBattle.player2.selectedIndex =
+        botMove.selectedIndex;
+
+    gameForBattle.player2.selectedLane =
+        botMove.selectedLane;
+}
+
+const r = resolveBattle(
+    gameForBattle,
+    allowedBattleDuration
+);
 
 const matchStats = structuredClone(
     g.matchStats || emptyMatchStats()
@@ -823,9 +862,18 @@ async function requestRematch(){
     // before either player can trigger the restart.
     await recordMatchResult();
 
+    if(isPracticeMode()){
     await updateDoc(ref(), {
-        [`game.rematch.${self()}`]: true
+        "game.rematch.player1": true,
+        "game.rematch.player2": true
     });
+
+    return;
+}
+
+await updateDoc(ref(), {
+    [`game.rematch.${self()}`]: true
+});
 }
 
 
@@ -1310,6 +1358,11 @@ function setupControls(){
 async function leaveRoom(){
     if(!latestRoom)
         return;
+
+    if(isPracticeMode()){
+        await returnToLobby();
+        return;
+    }
 
     await updateDoc(ref(), {
         state: "player-left",
