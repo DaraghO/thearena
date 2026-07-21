@@ -29,11 +29,26 @@ function newId(){ return "t" + Date.now().toString(36) + "_" + (_uid++); }
 
 function spawnTroop(owner, cardId, lane){
     const c = byId[cardId];
+
     return {
-        id:newId(), owner, cardId, lane,
-        x: owner === "player1" ? 0 : 1,
-        hp: c.health, maxHp: c.health,
-        state:"walk", cd:0
+        id:newId(),
+        owner,
+        cardId,
+        lane,
+
+        x:
+            owner === "player1"
+                ? 0
+                : 1,
+
+        hp:c.health,
+        maxHp:c.health,
+
+        state:"walk",
+        cd:0,
+
+        targetId:null,
+        targetEngaged:false
     };
 }
 
@@ -59,7 +74,139 @@ function frameSnapshot(field, towers){
 }
 
 const LANE_TOWER = { lane1:"left", lane2:"middle", lane3:"right" };
+const LANES = [
+    "lane1",
+    "lane2",
+    "lane3"
+];
 
+const ADJACENT_LANES = {
+    lane1:["lane2"],
+    lane2:["lane1", "lane3"],
+    lane3:["lane2"]
+};
+
+function findLivingTroop(field, id){
+    if(!id)
+        return null;
+
+    for(const lane of LANES){
+        const troop =
+            field[lane].find(candidate =>
+                candidate.id === id &&
+                candidate.hp > 0
+            );
+
+        if(troop)
+            return troop;
+    }
+
+    return null;
+}
+
+function nearestTargetInLanes(
+    field,
+    attacker,
+    lanes,
+    maximumDistance
+){
+    let target = null;
+    let bestDistance = Infinity;
+
+    lanes.forEach(lane => {
+        field[lane].forEach(candidate => {
+            if(
+                candidate.owner === attacker.owner ||
+                candidate.hp <= 0
+            ){
+                return;
+            }
+
+            const distance =
+                Math.abs(
+                    candidate.x -
+                    attacker.x
+                );
+
+            if(
+                distance <= maximumDistance &&
+                distance < bestDistance
+            ){
+                target = candidate;
+                bestDistance = distance;
+            }
+        });
+    });
+
+    return target;
+}
+
+function acquireTarget(
+    field,
+    attacker,
+    card,
+    detectionRange
+){
+    const sameLaneTarget =
+        nearestTargetInLanes(
+            field,
+            attacker,
+            [attacker.lane],
+            detectionRange
+        );
+
+    /*
+        The troop's own lane always has priority.
+
+        Even if an adjacent-lane enemy is closer,
+        an available same-lane enemy is selected first.
+    */
+    if(sameLaneTarget)
+        return sameLaneTarget;
+
+    if(!card.adjacentLaneTargeting)
+        return null;
+
+    return nearestTargetInLanes(
+        field,
+        attacker,
+        ADJACENT_LANES[attacker.lane] || [],
+        detectionRange
+    );
+}
+
+function damageTroop(
+    attacker,
+    target,
+    card,
+    gold
+){
+    target.hp -= card.damage;
+
+    attacker.cd =
+        1 / card.attackSpeed;
+
+    if(target.hp > 0)
+        return;
+
+    const targetCard =
+        byId[target.cardId];
+
+    const killReward =
+        targetCard
+            ? KILL_GOLD[targetCard.rarity] || 0
+            : 0;
+
+    gold[attacker.owner] =
+        Math.min(
+            GOLD_CAP,
+            gold[attacker.owner] +
+            killReward
+        );
+
+    attacker.targetId = null;
+    attacker.targetEngaged = false;
+}
 export function resolveBattle(game, requestedDuration = BATTLE_SECONDS){
     const field = cloneField(game.battlefield);
     const towers = {
@@ -97,34 +244,120 @@ export function resolveBattle(game, requestedDuration = BATTLE_SECONDS){
                 const foe = t.owner === "player1" ? "player2" : "player1";
                 const fwd = t.owner === "player1" ? 1 : -1;
 
-                let target = null, best = Infinity;
-                troops.forEach(o => {
-                    if(o.owner === t.owner || o.hp <= 0) return;
-                    const d = Math.abs(o.x - t.x);
-                    if(d < best){ best = d; target = o; }
-                });
+                const atkR =
+    c.range * T;
 
-                const atkR = c.range * T;
-                const detR = (c.detectRange || c.range) * T;
-                t.cd = Math.max(0, t.cd - DT);
+const detR =
+    (c.detectRange || c.range) * T;
 
-                if(target && best <= atkR){
-                    t.state = "attack";
-                    if(t.cd <= 0){
-                        target.hp -= c.damage;
-                        t.cd = 1 / c.attackSpeed;
-                        if(target.hp <= 0){
-                            const tc = byId[target.cardId];
-                            gold[t.owner] = Math.min(GOLD_CAP, gold[t.owner] + (KILL_GOLD[tc.rarity]||0));
-                        }
-                    }
-                    return;
-                }
-                if(target && best <= detR){
-                    t.state = "walk";
-                    t.x += Math.sign(target.x - t.x) * c.speed * T * DT;
-                    return;
-                }
+t.cd =
+    Math.max(
+        0,
+        t.cd - DT
+    );
+
+/*
+    First try to recover the troop's existing locked target.
+
+    This works across lanes because it searches the complete
+    battlefield rather than only the current lane.
+*/
+let target =
+    findLivingTroop(
+        field,
+        t.targetId
+    );
+
+/*
+    The locked target died or no target has been selected yet.
+*/
+if(!target){
+    t.targetId = null;
+    t.targetEngaged = false;
+
+    target =
+        acquireTarget(
+            field,
+            t,
+            c,
+            detR
+        );
+
+    if(target)
+        t.targetId = target.id;
+}
+
+if(target){
+    const targetDistance =
+        Math.abs(
+            target.x -
+            t.x
+        );
+
+    /*
+        Normal troops can attack while inside their range.
+
+        Cards with attackLockedTargetAtAnyRange can continue
+        attacking after reaching firing range once, regardless
+        of where the target later moves.
+    */
+    const mayAttack =
+        targetDistance <= atkR ||
+        (
+            c.attackLockedTargetAtAnyRange &&
+            t.targetEngaged
+        );
+
+    if(mayAttack){
+        t.state = "attack";
+
+        /*
+            Once this becomes true, the Archer no longer checks
+            the target's distance.
+        */
+        t.targetEngaged = true;
+
+        if(t.cd <= 0){
+            damageTroop(
+                t,
+                target,
+                c,
+                gold
+            );
+        }
+
+        return;
+    }
+
+    /*
+        The target has been selected but has not yet entered
+        attack range.
+
+        Follow its forward position without changing lanes.
+        No nearer enemy can steal the target.
+    */
+    t.state = "walk";
+
+    t.x +=
+        Math.sign(
+            target.x -
+            t.x
+        ) *
+        c.speed *
+        T *
+        DT;
+
+    t.x =
+        Math.max(
+            MIN_BATTLE_X,
+            Math.min(
+                MAX_BATTLE_X,
+                t.x
+            )
+        );
+
+    return;
+}
 
                 const laneTower =
     LANE_TOWER[lane];
