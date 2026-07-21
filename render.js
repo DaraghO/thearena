@@ -895,6 +895,8 @@ export function renderBoard(towers, troops, self){
             <g class="troop-front-layer">
                 ${frontTroops}
             </g>
+
+            <g class="placement-preview-layer"></g>
         `;
 
     staticPreviousTowers =
@@ -920,6 +922,7 @@ export function initBattle(self){
         <g class="troop-back-layer"></g>
         <g class="tower-layer"></g>
         <g class="troop-front-layer"></g>
+        <g class="placement-preview-layer"></g>
     `;
 
     scene = {
@@ -1138,7 +1141,12 @@ function showNotEnoughGold(cardElement){
     if(warning)
         warning.classList.add("show");
 }
-export function drawHand(room, self, onSelect){
+export function drawHand(
+    room,
+    self,
+    onSelect,
+    onPointerStart = null
+){
     const game = room.game;
     const wrap = document.getElementById("cards");
 
@@ -1156,6 +1164,8 @@ export function drawHand(room, self, onSelect){
         const cannotAfford = card.cost > availableGold;
 
         const element = document.createElement("button");
+        element.type = "button";
+        element.dataset.cardIndex = index;
 
         element.className =
             `game-card rarity-${card.rarity}` +
@@ -1177,22 +1187,183 @@ export function drawHand(room, self, onSelect){
             <span class="cname">${card.name}</span>
         `;
 
-        element.onclick = () => {
-            if(card.cost > game[self].gold){
-                showNotEnoughGold(element);
+        const rejectUnaffordableCard = () => {
+            if(card.cost <= game[self].gold)
+                return false;
+
+            showNotEnoughGold(element);
+            return true;
+        };
+
+        element.addEventListener("pointerdown", event => {
+            if(
+                event.pointerType === "mouse" &&
+                event.button !== 0
+            ){
                 return;
             }
 
+            if(rejectUnaffordableCard())
+                return;
+
+            if(!onPointerStart)
+                return;
+
+            event.preventDefault();
+            onPointerStart(index, card, event);
+        });
+
+        // Pointer selection is handled on pointerdown so a drag can begin.
+        // Keyboard activation still uses the ordinary select callback.
+        element.addEventListener("click", event => {
+            if(event.detail !== 0)
+                return;
+
+            if(rejectUnaffordableCard())
+                return;
+
             onSelect(index);
-        };
+        });
 
         wrap.appendChild(element);
     });
 }
-export function setSelectedLane(lane){
-    document.querySelectorAll(".lane-select").forEach(el => {
-        el.classList.toggle("selected", el.dataset.lane === lane);
+
+export function setSelectedCard(index){
+    document.querySelectorAll(".game-card").forEach(el => {
+        el.classList.toggle(
+            "selected",
+            Number(el.dataset.cardIndex) === index
+        );
     });
+}
+
+export function setSelectedLane(lane, dragHover = false){
+    document.querySelectorAll(".lane-select").forEach(el => {
+        const matches = el.dataset.lane === lane;
+
+        el.classList.toggle("selected", matches);
+        el.classList.toggle(
+            "drag-hover",
+            matches && dragHover
+        );
+    });
+}
+
+function placementLayer(){
+    const board = document.getElementById("board");
+
+    if(!board)
+        return null;
+
+    let layer = board.querySelector(
+        ".placement-preview-layer"
+    );
+
+    if(!layer){
+        board.insertAdjacentHTML(
+            "beforeend",
+            '<g class="placement-preview-layer"></g>'
+        );
+
+        layer = board.querySelector(
+            ".placement-preview-layer"
+        );
+    }
+
+    return layer;
+}
+
+export function setPlacementPreview(
+    cardId,
+    lane,
+    self,
+    dragging = false
+){
+    const layer = placementLayer();
+
+    if(!layer)
+        return;
+
+    if(!cardId || !lane || !self){
+        layer.innerHTML = "";
+        return;
+    }
+
+    // Troop x values are stored from player 1's direction.
+    // This places the preview just in front of the local towers.
+    const deploymentX =
+        self === "player1" ? 0.13 : 0.87;
+
+    const { tx, ty, sc } = placeTroop(
+        lane,
+        deploymentX,
+        self
+    );
+
+    layer.innerHTML = `
+        <g
+            class="placement-preview${dragging ? " dragging" : ""}"
+            transform="translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})"
+        >
+            <ellipse
+                class="placement-preview-ring"
+                cx="50"
+                cy="116"
+                rx="35"
+                ry="12"
+            />
+
+            ${rigMarkup(cardId, "you", "pose")}
+        </g>
+    `;
+}
+
+let dragCardPreview = null;
+
+function ensureDragCardPreview(){
+    if(dragCardPreview?.isConnected)
+        return dragCardPreview;
+
+    dragCardPreview = document.createElement("div");
+    dragCardPreview.className = "drag-card-preview";
+    dragCardPreview.setAttribute("aria-hidden", "true");
+    document.body.appendChild(dragCardPreview);
+
+    return dragCardPreview;
+}
+
+export function showDragCardPreview(card, clientX, clientY){
+    if(!card)
+        return;
+
+    const preview = ensureDragCardPreview();
+
+    preview.innerHTML = `
+        <svg viewBox="0 0 100 120">
+            ${rigMarkup(card.id, "you", "pose")}
+        </svg>
+        <span>${card.name}</span>
+    `;
+
+    preview.classList.add("show");
+    moveDragCardPreview(clientX, clientY);
+}
+
+export function moveDragCardPreview(clientX, clientY){
+    if(!dragCardPreview)
+        return;
+
+    dragCardPreview.style.left = `${clientX}px`;
+    dragCardPreview.style.top = `${clientY}px`;
+}
+
+export function hideDragCardPreview(){
+    if(!dragCardPreview)
+        return;
+
+    dragCardPreview.classList.remove("show");
+    dragCardPreview.innerHTML = "";
 }
 
 export function setPhaseTag(text, kind){
