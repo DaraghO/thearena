@@ -3,7 +3,10 @@ import { getRandomUnitCards, cards } from "./cards.js";
 import { resolveBattle, BATTLE_SECONDS, DT } from "./simulation.js";
 import {
     renderBoard, initBattle, drawBattleFrame, resetBattle,
-    drawTopbar, drawHand, setSelectedLane,
+    drawTopbar, drawHand, setSelectedCard, setSelectedLane,
+    setPlacementPreview,
+    showDragCardPreview, moveDragCardPreview,
+    hideDragCardPreview,
     setPhaseTag, setPhaseTime, setMatchTime,
     setTrayLocked, showBanner,
     showResult, hideResult,
@@ -24,6 +27,7 @@ const SELECTION_SECONDS = 5;
 const HEARTBEAT_INTERVAL_MS = 4000;
 const PLAYER_STALE_MS = 14000;
 const PRESENCE_CHECK_INTERVAL_MS = 2000;
+const CARD_DRAG_THRESHOLD_PX = 8;
 
 let roomId = null;
 let latestRoom = null;
@@ -37,6 +41,10 @@ let lastPhase = null;
 let heartbeatTimer = null;
 let presenceCheckTimer = null;
 let disconnectResolutionRunning = false;
+
+let cardPointer = null;
+let pendingSelectedIndex;
+let pendingSelectedLane;
 
 
 function playerKeyFor(room)
@@ -537,6 +545,14 @@ function render(room){
     const g = room.game, me = self();
     drawTopbar(g, me);
 
+    reconcilePendingSelection(g, me);
+
+    if(g.phase !== "selection"){
+        cancelCardPointerInteraction(false);
+        pendingSelectedIndex = undefined;
+        pendingSelectedLane = undefined;
+    }
+
     if(g.phase !== lastPhase){
         if(g.phase === "selection") showBanner("Rest Phase!", "rest");
         else if(g.phase === "battle") showBanner("Battle Phase!", "battle");
@@ -557,6 +573,8 @@ function render(room){
     );
 
     drawHand(room, me, ()=>{});
+    setSelectedLane(null);
+    setPlacementPreview(null, null, me);
     setPhaseTag("Match over", "over");
 
     const opponent =
@@ -597,6 +615,8 @@ function render(room){
         setTrayLocked(true);
         setPhaseTag("Battle Phase", "battle");
         drawHand(room, me, ()=>{});
+        setSelectedLane(null);
+        setPlacementPreview(null, null, me);
         startReplay(g.battle, me);
         return;
     }
@@ -605,8 +625,13 @@ function render(room){
     stopReplay();
     setTrayLocked(false);
     renderBoard(g.towers, flatten(g.battlefield, "idle"), me);
-    drawHand(room, me, (index) => writeSelection("selectedIndex", index));
-    setSelectedLane(g[me].selectedLane);
+    drawHand(
+        room,
+        me,
+        index => writeSelection("selectedIndex", index),
+        beginCardPointerInteraction
+    );
+    refreshSelectionVisual(g, me);
     setPhaseTag("Rest Phase", "rest");
 }
 
@@ -903,9 +928,337 @@ setInterval(() => {
 }, 100);
 
 /* ---------------- INPUT ---------------- */
+function setPendingSelection(field, value){
+    if(field === "selectedIndex")
+        pendingSelectedIndex = value;
+
+    if(field === "selectedLane")
+        pendingSelectedLane = value;
+}
+
+function reconcilePendingSelection(game, me){
+    const player = game?.[me];
+
+    if(!player)
+        return;
+
+    if(
+        pendingSelectedIndex !== undefined &&
+        player.selectedIndex === pendingSelectedIndex
+    ){
+        pendingSelectedIndex = undefined;
+    }
+
+    if(
+        pendingSelectedLane !== undefined &&
+        player.selectedLane === pendingSelectedLane
+    ){
+        pendingSelectedLane = undefined;
+    }
+}
+
+function visualSelection(game, me){
+    const player = game?.[me];
+
+    if(!player)
+        return { card:null, lane:null, dragging:false };
+
+    const selectedIndex =
+        cardPointer?.index ??
+        (pendingSelectedIndex !== undefined
+            ? pendingSelectedIndex
+            : player.selectedIndex);
+
+    const selectedLane =
+        cardPointer?.dragging
+            ? cardPointer.hoveredLane
+            : (pendingSelectedLane !== undefined
+                ? pendingSelectedLane
+                : player.selectedLane);
+
+    const selectedCard =
+        cardPointer?.card ??
+        player.hand?.[selectedIndex] ??
+        null;
+
+    return {
+        card: selectedCard,
+        lane: selectedLane,
+        dragging: cardPointer?.dragging === true
+    };
+}
+
+function refreshSelectionVisual(
+    game = latestRoom?.game,
+    me = latestRoom ? self() : null
+){
+    if(!game || !me || game.phase !== "selection")
+        return;
+
+    const selection = visualSelection(game, me);
+
+    const selectedIndex =
+        cardPointer?.index ??
+        (pendingSelectedIndex !== undefined
+            ? pendingSelectedIndex
+            : game[me].selectedIndex);
+
+    setSelectedCard(selectedIndex);
+
+    setSelectedLane(
+        selection.lane,
+        selection.dragging
+    );
+
+    setPlacementPreview(
+        selection.card?.id ?? null,
+        selection.lane,
+        me,
+        selection.dragging
+    );
+}
+
 async function writeSelection(field, value){
-    if(!latestRoom || latestRoom.game.phase !== "selection") return;
-    await updateDoc(ref(), { [`game.${self()}.${field}`]: value });
+    if(!latestRoom || latestRoom.game.phase !== "selection")
+        return;
+
+    setPendingSelection(field, value);
+    refreshSelectionVisual();
+
+    try{
+        await updateDoc(ref(), {
+            [`game.${self()}.${field}`]: value
+        });
+    }
+    catch(error){
+        console.error("Could not save selection:", error);
+
+        if(field === "selectedIndex")
+            pendingSelectedIndex = undefined;
+
+        if(field === "selectedLane")
+            pendingSelectedLane = undefined;
+
+        refreshSelectionVisual();
+    }
+}
+
+async function writePlaySelection(index, lane){
+    if(!latestRoom || latestRoom.game.phase !== "selection")
+        return;
+
+    pendingSelectedIndex = index;
+    pendingSelectedLane = lane;
+    refreshSelectionVisual();
+
+    try{
+        await updateDoc(ref(), {
+            [`game.${self()}.selectedIndex`]: index,
+            [`game.${self()}.selectedLane`]: lane
+        });
+    }
+    catch(error){
+        console.error("Could not save dragged play:", error);
+        pendingSelectedIndex = undefined;
+        pendingSelectedLane = undefined;
+        refreshSelectionVisual();
+    }
+}
+
+function laneAtPoint(clientX, clientY){
+    const elements = document.elementsFromPoint(
+        clientX,
+        clientY
+    );
+
+    for(const element of elements){
+        const lane = element.closest?.(".lane-select");
+
+        if(lane)
+            return lane.dataset.lane;
+    }
+
+    return null;
+}
+
+function attachCardPointerListeners(){
+    window.addEventListener(
+        "pointermove",
+        moveCardPointerInteraction,
+        { passive:false }
+    );
+
+    window.addEventListener(
+        "pointerup",
+        finishCardPointerInteraction
+    );
+
+    window.addEventListener(
+        "pointercancel",
+        handleCardPointerCancel
+    );
+}
+
+function detachCardPointerListeners(){
+    window.removeEventListener(
+        "pointermove",
+        moveCardPointerInteraction
+    );
+
+    window.removeEventListener(
+        "pointerup",
+        finishCardPointerInteraction
+    );
+
+    window.removeEventListener(
+        "pointercancel",
+        handleCardPointerCancel
+    );
+}
+
+function handleCardPointerCancel(event){
+    if(
+        !cardPointer ||
+        event.pointerId !== cardPointer.pointerId
+    ){
+        return;
+    }
+
+    const selectedIndex = cardPointer.index;
+    clearCardPointerInteraction();
+
+    // Treat an operating-system pointer cancellation as an ordinary
+    // card click rather than leaving an unsaved local selection.
+    writeSelection("selectedIndex", selectedIndex);
+}
+
+function beginCardPointerInteraction(index, card, event){
+    if(!latestRoom || latestRoom.game.phase !== "selection")
+        return;
+
+    cancelCardPointerInteraction(false);
+
+    cardPointer = {
+        pointerId: event.pointerId,
+        index,
+        card,
+        startX: event.clientX,
+        startY: event.clientY,
+        dragging: false,
+        hoveredLane: null
+    };
+
+    // Show the selection immediately, but wait until release before
+    // writing to Firestore. This prevents a snapshot redraw from
+    // interrupting an active touch drag.
+    pendingSelectedIndex = index;
+    refreshSelectionVisual();
+    attachCardPointerListeners();
+}
+
+function moveCardPointerInteraction(event){
+    if(
+        !cardPointer ||
+        event.pointerId !== cardPointer.pointerId
+    ){
+        return;
+    }
+
+    const dx = event.clientX - cardPointer.startX;
+    const dy = event.clientY - cardPointer.startY;
+    const distance = Math.hypot(dx, dy);
+
+    if(
+        !cardPointer.dragging &&
+        distance < CARD_DRAG_THRESHOLD_PX
+    ){
+        return;
+    }
+
+    event.preventDefault();
+
+    if(!cardPointer.dragging){
+        cardPointer.dragging = true;
+        document.body.classList.add("card-dragging");
+
+        showDragCardPreview(
+            cardPointer.card,
+            event.clientX,
+            event.clientY
+        );
+    }
+    else{
+        moveDragCardPreview(
+            event.clientX,
+            event.clientY
+        );
+    }
+
+    const hoveredLane = laneAtPoint(
+        event.clientX,
+        event.clientY
+    );
+
+    if(hoveredLane !== cardPointer.hoveredLane){
+        cardPointer.hoveredLane = hoveredLane;
+        refreshSelectionVisual();
+    }
+}
+
+function finishCardPointerInteraction(event){
+    if(
+        !cardPointer ||
+        event.pointerId !== cardPointer.pointerId
+    ){
+        return;
+    }
+
+    const interaction = cardPointer;
+
+    if(interaction.dragging)
+        event.preventDefault();
+
+    const droppedLane =
+        interaction.dragging
+            ? laneAtPoint(event.clientX, event.clientY)
+            : null;
+
+    clearCardPointerInteraction();
+
+    if(droppedLane){
+        writePlaySelection(
+            interaction.index,
+            droppedLane
+        );
+    }
+    else{
+        // A normal click, or a drag released outside the board,
+        // still behaves like the original card-selection system.
+        writeSelection(
+            "selectedIndex",
+            interaction.index
+        );
+    }
+}
+
+function clearCardPointerInteraction(){
+    detachCardPointerListeners();
+    hideDragCardPreview();
+    document.body.classList.remove("card-dragging");
+    cardPointer = null;
+}
+
+function cancelCardPointerInteraction(refresh = true){
+    if(!cardPointer){
+        hideDragCardPreview();
+        document.body.classList.remove("card-dragging");
+        return;
+    }
+
+    clearCardPointerInteraction();
+
+    if(refresh)
+        refreshSelectionVisual();
 }
 
 function setupControls(){
@@ -922,12 +1275,15 @@ function setupControls(){
             if(latestRoom.game.phase !== "selection")
                 return;
 
-            const lane = event.target.closest(".lane-select");
+            const lane = laneAtPoint(
+                event.clientX,
+                event.clientY
+            );
 
             if(!lane)
                 return;
 
-            writeSelection("selectedLane", lane.dataset.lane);
+            writeSelection("selectedLane", lane);
         });
     }
 
@@ -935,12 +1291,18 @@ function setupControls(){
 
     if(skip){
         skip.onclick = async () => {
+            cancelCardPointerInteraction(false);
+            pendingSelectedIndex = null;
+            pendingSelectedLane = null;
+            refreshSelectionVisual();
+
             await updateDoc(ref(), {
                 [`game.${self()}.selectedIndex`]: null,
                 [`game.${self()}.selectedLane`]: null
             });
         };
     }
+
     setReturnLobbyHandler(leaveRoom);
 }
 
@@ -961,6 +1323,10 @@ async function leaveRoom(){
 
 async function returnToLobby()
 {
+    cancelCardPointerInteraction(false);
+    pendingSelectedIndex = undefined;
+    pendingSelectedLane = undefined;
+
     const roomToDelete = roomId;
 
     stopPresenceTracking();
