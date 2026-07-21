@@ -1,6 +1,6 @@
 // render.js
 // All drawing. No Firestore. game.js calls these.
-
+import { CARD_ART_RIGS } from "./card-art/registry.js";
 
 /*Dragon animation*/
 
@@ -56,7 +56,10 @@ function fallbackRig(team, state){
     </g>`;
 }
 
-const RIGS = { knight: knightRig };
+const RIGS = {
+    knight: knightRig,
+    ...CARD_ART_RIGS
+};
 function rigMarkup(cardId, team, state){
 
     if(cardId === "dragon")
