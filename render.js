@@ -1004,6 +1004,7 @@ const frontLayer =
         rig.classList.remove(
             "state-walk",
             "state-attack",
+            "state-mine",
             "state-die",
             "state-idle",
             "state-pose"
