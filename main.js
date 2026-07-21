@@ -16,9 +16,9 @@ import {
 
 await login();
 
-
 const roomsDiv = document.getElementById("rooms");
 const createButton = document.getElementById("createRoom");
+const practiceButton = document.getElementById("practiceMode");
 let currentRoomId = null;
 let hostedRoomId = null;
 const WAITING_ROOM_STALE_MS = 15000;
@@ -166,6 +166,7 @@ createButton.onclick = async () => {
             const room = roomDoc.data();
 
             if(
+    room.mode !== "practice" &&
     room.name.toLowerCase() === roomName.toLowerCase() &&
     (
         room.state === "waiting" ||
@@ -226,6 +227,47 @@ presence: {
     }
 };
 
+// Start a private practice match against the bot.
+practiceButton.onclick = async () => {
+    practiceButton.disabled = true;
+    createButton.disabled = true;
+
+    try{
+        const roomReference =
+            await addDoc(collection(db, "rooms"), {
+                name: "Practice vs Bot",
+                mode: "practice",
+                host: auth.currentUser.uid,
+                player2: "BOT",
+                state: "playing",
+                created: serverTimestamp(),
+
+                presence: {
+                    player1: Date.now(),
+                    player2: null
+                }
+            });
+
+        currentRoomId = roomReference.id;
+
+        startGame(currentRoomId);
+
+        document.getElementById("status").textContent =
+            "Starting practice match...";
+    }
+    catch(error){
+        console.error(
+            "Could not start practice mode:",
+            error
+        );
+
+        alert("Practice mode could not be started.");
+    }
+    finally{
+        practiceButton.disabled = false;
+        createButton.disabled = false;
+    }
+};
 
 async function cleanupStaleRooms()
 {
