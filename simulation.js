@@ -27,7 +27,7 @@ const KILL_GOLD = {
     legendary: 5
 };
 
-const GOLD_CAP = 25;
+const GOLD_CAP = 100;
 const PASSIVE_GOLD = 2;
 
 const byId = {};
