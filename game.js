@@ -24,7 +24,7 @@ import {
 
 console.log("game.js loaded");
 
-const SELECTION_SECONDS = 5;
+const SELECTION_SECONDS = 6;
 const HEARTBEAT_INTERVAL_MS = 4000;
 const PLAYER_STALE_MS = 14000;
 const PRESENCE_CHECK_INTERVAL_MS = 2000;
