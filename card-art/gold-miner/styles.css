@@ -1,0 +1,492 @@
+/* card-art/gold-miner/styles.css */
+/* Animation and presentation for the Gold Miner custom SVG rig. */
+
+.rig.gold-miner{
+    --gold-miner-blob:#e3aa49;
+    --gold-miner-blob-light:#f5c86e;
+    --gold-miner-steel:#aeb7c1;
+    --gold-miner-steel-light:#e6ebf0;
+    --gold-miner-steel-dark:#59626e;
+    --gold-miner-ink:#201b20;
+    --gold-miner-gold:#ffc23c;
+    --gold-miner-gold-light:#ffe590;
+    --gold-miner-ground:#654b29;
+}
+
+.rig.gold-miner *{
+    vector-effect:non-scaling-stroke;
+}
+
+.rig.gold-miner .gold-miner-outline{
+    stroke:var(--gold-miner-ink);
+    stroke-width:1.55;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.rig.gold-miner .gold-miner-shadow{
+    fill:rgba(12,10,15,.32);
+}
+
+.rig.gold-miner .gold-miner-blob-base{
+    fill:var(--gold-miner-blob);
+}
+
+.rig.gold-miner .gold-miner-blob-highlight{
+    fill:var(--gold-miner-blob-light);
+    opacity:.45;
+}
+
+.rig.gold-miner .gold-miner-drill-base{
+    fill:var(--gold-miner-steel);
+}
+
+.rig.gold-miner .gold-miner-drill-tip{
+    fill:var(--gold-miner-steel-dark);
+}
+
+.rig.gold-miner .gold-miner-drill-line{
+    fill:none;
+    stroke:var(--gold-miner-ink);
+    stroke-width:1.8;
+}
+
+.rig.gold-miner .gold-miner-eye{
+    fill:#fff;
+}
+
+.rig.gold-miner .gold-miner-pupil{
+    fill:#181418;
+}
+
+.rig.gold-miner .gold-miner-eye-glint{
+    fill:#fff;
+}
+
+.rig.gold-miner .gold-miner-visor{
+    fill:#444c57;
+}
+
+.rig.gold-miner .gold-miner-coin,
+.rig.gold-miner .gold-miner-mined-coin{
+    fill:var(--gold-miner-gold);
+}
+
+.rig.gold-miner .gold-miner-coin-inner,
+.rig.gold-miner .gold-miner-mined-coin-inner{
+    fill:none;
+    stroke:var(--gold-miner-gold-light);
+    stroke-width:1.1;
+}
+
+.rig.gold-miner .gold-miner-dirt{
+    fill:var(--gold-miner-ground);
+}
+
+.rig.gold-miner .gold-miner-spark{
+    fill:#ffe785;
+}
+
+.rig.gold-miner .gold-miner-root,
+.rig.gold-miner .gold-miner-upright,
+.rig.gold-miner .gold-miner-blob,
+.rig.gold-miner .gold-miner-drill-helmet,
+.rig.gold-miner .gold-miner-drill-shell,
+.rig.gold-miner .gold-miner-mining,
+.rig.gold-miner .gold-miner-mining-drill,
+.rig.gold-miner .gold-miner-shadow,
+.rig.gold-miner .gold-miner-spin-ring,
+.rig.gold-miner .gold-miner-dirt,
+.rig.gold-miner .gold-miner-spark,
+.rig.gold-miner .gold-miner-coin-pop,
+.rig.gold-miner .gold-miner-mined-coin,
+.rig.gold-miner .gold-miner-mined-coin-inner{
+    transform-box:fill-box;
+}
+
+.rig.gold-miner .gold-miner-root{
+    transform-origin:50% 100%;
+}
+
+.rig.gold-miner .gold-miner-upright{
+    transform-origin:50% 100%;
+}
+
+.rig.gold-miner .gold-miner-blob{
+    transform-origin:50% 100%;
+}
+
+.rig.gold-miner .gold-miner-drill-helmet{
+    transform-origin:50% 100%;
+}
+
+.rig.gold-miner .gold-miner-drill-shell{
+    transform-origin:50% 75%;
+}
+
+.rig.gold-miner .gold-miner-mining{
+    transform-origin:50% 96%;
+}
+
+.rig.gold-miner .gold-miner-mining-drill{
+    transform-origin:50% 50%;
+}
+
+.rig.gold-miner .gold-miner-shadow,
+.rig.gold-miner .gold-miner-spin-ring,
+.rig.gold-miner .gold-miner-dirt,
+.rig.gold-miner .gold-miner-spark,
+.rig.gold-miner .gold-miner-coin-pop,
+.rig.gold-miner .gold-miner-mined-coin,
+.rig.gold-miner .gold-miner-mined-coin-inner{
+    transform-origin:50% 50%;
+}
+
+.rig.gold-miner .gold-miner-mining,
+.rig.gold-miner .gold-miner-effects,
+.rig.gold-miner .gold-miner-coin-pop{
+    opacity:0;
+}
+
+/* Idle */
+.rig.gold-miner.state-idle .gold-miner-upright{
+    animation:goldMinerIdleGrounded 2.2s ease-in-out infinite;
+}
+
+.rig.gold-miner.state-idle .gold-miner-blob{
+    animation:goldMinerIdleSquash 2.2s ease-in-out infinite;
+}
+
+.rig.gold-miner.state-idle .gold-miner-drill-helmet{
+    animation:goldMinerIdleDrill 2.2s ease-in-out infinite;
+}
+
+/* Card portrait / selected placement pose */
+.rig.gold-miner.state-pose .gold-miner-upright{
+    animation:goldMinerPoseSway 1.9s ease-in-out infinite;
+}
+
+.rig.gold-miner.state-pose .gold-miner-coin-pop{
+    opacity:1;
+    animation:goldMinerCoinPop 1.9s ease-in-out infinite;
+}
+
+/* Bounce walk */
+.rig.gold-miner.state-walk .gold-miner-upright{
+    animation:goldMinerGroundBounce .66s cubic-bezier(.45,0,.55,1) infinite;
+}
+
+.rig.gold-miner.state-walk .gold-miner-blob{
+    animation:goldMinerGroundSquash .66s cubic-bezier(.45,0,.55,1) infinite;
+}
+
+.rig.gold-miner.state-walk .gold-miner-drill-helmet{
+    animation:goldMinerBounceDrill .66s cubic-bezier(.45,0,.55,1) infinite;
+}
+
+.rig.gold-miner.state-walk .gold-miner-shadow{
+    animation:goldMinerBounceShadow .66s cubic-bezier(.45,0,.55,1) infinite;
+}
+
+/* Upside-down spinning-top mining */
+.rig.gold-miner.state-mine .gold-miner-upright{
+    opacity:0;
+}
+
+.rig.gold-miner.state-mine .gold-miner-mining{
+    opacity:1;
+    animation:goldMinerTopWobble .28s linear infinite;
+}
+
+.rig.gold-miner.state-mine .gold-miner-mining-drill{
+    animation:goldMinerDrillTopSpin .12s linear infinite;
+}
+
+.rig.gold-miner.state-mine .gold-miner-spin-ring{
+    fill:none;
+    stroke:var(--gold-miner-steel-light);
+}
+
+.rig.gold-miner.state-mine .gold-miner-spin-ring.ring-one{
+    stroke-width:1.5;
+    animation:goldMinerRingSpinA .18s linear infinite;
+}
+
+.rig.gold-miner.state-mine .gold-miner-spin-ring.ring-two{
+    stroke-width:1.35;
+    animation:goldMinerRingSpinB .18s linear infinite .06s;
+}
+
+.rig.gold-miner.state-mine .gold-miner-spin-ring.ring-three{
+    stroke-width:1.2;
+    animation:goldMinerRingSpinA .18s linear infinite .12s;
+}
+
+.rig.gold-miner.state-mine .gold-miner-effects{
+    opacity:1;
+}
+
+.rig.gold-miner.state-mine .gold-miner-dirt.dirt-one{
+    animation:goldMinerDirtLeft .58s linear infinite;
+}
+
+.rig.gold-miner.state-mine .gold-miner-dirt.dirt-two{
+    animation:goldMinerDirtRight .58s linear infinite .12s;
+}
+
+.rig.gold-miner.state-mine .gold-miner-spark.spark-one{
+    animation:goldMinerSparkLeft .58s linear infinite .05s;
+}
+
+.rig.gold-miner.state-mine .gold-miner-spark.spark-two{
+    animation:goldMinerSparkRight .58s linear infinite .18s;
+}
+
+.rig.gold-miner.state-mine .gold-miner-mined-coin,
+.rig.gold-miner.state-mine .gold-miner-mined-coin-inner{
+    animation:goldMinerMineCoin .9s ease-out infinite .22s;
+}
+
+.rig.gold-miner.state-mine .gold-miner-shadow{
+    animation:goldMinerMineShadow .28s linear infinite;
+}
+
+/* Death */
+.rig.gold-miner.state-die .gold-miner-upright{
+    animation:goldMinerDieFall 1.05s ease-out forwards;
+}
+
+.rig.gold-miner.state-die .gold-miner-shadow{
+    animation:goldMinerDieShadow 1.05s ease-out forwards;
+}
+
+@keyframes goldMinerIdleGrounded{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-.7px); }
+}
+
+@keyframes goldMinerIdleSquash{
+    0%,100%{ transform:scaleX(1.015) scaleY(.985); }
+    50%{ transform:scaleX(.99) scaleY(1.01); }
+}
+
+@keyframes goldMinerIdleDrill{
+    0%,100%{ transform:translateY(0) rotate(0); }
+    50%{ transform:translateY(.4px) rotate(1deg); }
+}
+
+@keyframes goldMinerPoseSway{
+    0%,100%{ transform:translateX(-1px) rotate(-2deg); }
+    50%{ transform:translateX(1px) rotate(2deg); }
+}
+
+@keyframes goldMinerCoinPop{
+    0%,100%{
+        transform:translate(0,0) scale(.4);
+        opacity:0;
+    }
+
+    25%{
+        transform:translate(0,-6px) scale(1);
+        opacity:1;
+    }
+
+    60%{
+        transform:translate(0,-13px) scale(1);
+        opacity:1;
+    }
+
+    85%{
+        transform:translate(0,-18px) scale(.65);
+        opacity:0;
+    }
+}
+
+@keyframes goldMinerGroundBounce{
+    0%,16%,82%,100%{ transform:translateY(0); }
+    48%{ transform:translateY(-8px); }
+}
+
+@keyframes goldMinerGroundSquash{
+    0%,16%,82%,100%{ transform:scaleX(1.09) scaleY(.91); }
+    32%,66%{ transform:scaleX(.97) scaleY(1.035); }
+    48%{ transform:scaleX(.94) scaleY(1.07); }
+}
+
+@keyframes goldMinerBounceDrill{
+    0%,16%,82%,100%{
+        transform:translateY(1px) scaleX(1.04) scaleY(.97);
+    }
+
+    48%{
+        transform:translateY(-.5px) rotate(-2deg) scaleX(.98) scaleY(1.02);
+    }
+}
+
+@keyframes goldMinerBounceShadow{
+    0%,16%,82%,100%{
+        transform:scaleX(1.08);
+        opacity:.34;
+    }
+
+    48%{
+        transform:scaleX(.68);
+        opacity:.16;
+    }
+}
+
+@keyframes goldMinerTopWobble{
+    0%{ transform:translateX(-1.3px) rotate(-3.2deg); }
+    25%{ transform:translateX(0) rotate(0); }
+    50%{ transform:translateX(1.3px) rotate(3.2deg); }
+    75%{ transform:translateX(0) rotate(0); }
+    100%{ transform:translateX(-1.3px) rotate(-3.2deg); }
+}
+
+@keyframes goldMinerDrillTopSpin{
+    0%{ transform:scaleX(1) skewX(0deg); }
+    25%{ transform:scaleX(.74) skewX(-4deg); }
+    50%{ transform:scaleX(1) skewX(0deg); }
+    75%{ transform:scaleX(.74) skewX(4deg); }
+    100%{ transform:scaleX(1) skewX(0deg); }
+}
+
+@keyframes goldMinerRingSpinA{
+    0%{
+        transform:scaleX(.35);
+        opacity:.15;
+    }
+
+    50%{
+        transform:scaleX(1.18);
+        opacity:.85;
+    }
+
+    100%{
+        transform:scaleX(.35);
+        opacity:.15;
+    }
+}
+
+@keyframes goldMinerRingSpinB{
+    0%{
+        transform:scaleX(1.15);
+        opacity:.8;
+    }
+
+    50%{
+        transform:scaleX(.32);
+        opacity:.12;
+    }
+
+    100%{
+        transform:scaleX(1.15);
+        opacity:.8;
+    }
+}
+
+@keyframes goldMinerMineShadow{
+    0%,100%{
+        transform:scaleX(.82);
+        opacity:.26;
+    }
+
+    50%{
+        transform:scaleX(1.05);
+        opacity:.35;
+    }
+}
+
+@keyframes goldMinerDirtLeft{
+    0%{
+        transform:translate(0,0) scale(.2);
+        opacity:0;
+    }
+
+    20%{ opacity:1; }
+
+    100%{
+        transform:translate(-12px,-7px) scale(1.1);
+        opacity:0;
+    }
+}
+
+@keyframes goldMinerDirtRight{
+    0%{
+        transform:translate(0,0) scale(.2);
+        opacity:0;
+    }
+
+    20%{ opacity:1; }
+
+    100%{
+        transform:translate(12px,-7px) scale(1.1);
+        opacity:0;
+    }
+}
+
+@keyframes goldMinerSparkLeft{
+    0%{
+        transform:translate(0,0) scale(.1);
+        opacity:0;
+    }
+
+    18%{ opacity:1; }
+
+    100%{
+        transform:translate(-9px,-11px) scale(.9);
+        opacity:0;
+    }
+}
+
+@keyframes goldMinerSparkRight{
+    0%{
+        transform:translate(0,0) scale(.1);
+        opacity:0;
+    }
+
+    18%{ opacity:1; }
+
+    100%{
+        transform:translate(9px,-11px) scale(.9);
+        opacity:0;
+    }
+}
+
+@keyframes goldMinerMineCoin{
+    0%{
+        transform:translateY(0) scale(.2);
+        opacity:0;
+    }
+
+    25%{ opacity:1; }
+
+    100%{
+        transform:translateY(-18px) scale(1);
+        opacity:0;
+    }
+}
+
+@keyframes goldMinerDieFall{
+    0%{
+        transform:translate(0,0) rotate(0);
+        opacity:1;
+    }
+
+    100%{
+        transform:translate(9px,12px) rotate(72deg);
+        opacity:.28;
+    }
+}
+
+@keyframes goldMinerDieShadow{
+    0%{
+        transform:scaleX(1);
+        opacity:.32;
+    }
+
+    100%{
+        transform:scaleX(1.35);
+        opacity:.1;
+    }
+}
