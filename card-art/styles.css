@@ -2,3 +2,4 @@
    Add one @import here whenever a new card gets its own styles. */
 
 @import "./archer/styles.css";
+@import "./gold-miner/styles.css";
