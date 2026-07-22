@@ -19,12 +19,12 @@ export const cards = [
         type:"unit",
         rarity:"common",
         cost:2,
-        health:170,
-        damage:70,
+        health:70,
+        damage:37,
         speed:7,
         range:7,
         detectRange:7,
-        attackSpeed:1.7,
+        attackSpeed:1.3,
     
         adjacentLaneTargeting:true,
         attackLockedTargetAtAnyRange:true
