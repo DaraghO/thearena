@@ -30,10 +30,10 @@ export const cards = [
     cost:10,
     health:1000,
     damage:167,
-    speed:2,
+    speed:1,
     range:4,
     detectRange:6,
-    attackSpeed:4
+    attackSpeed:0.25
     },
     {
     id:"gold_miner",
