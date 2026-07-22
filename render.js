@@ -848,11 +848,82 @@ function towersMarkup(
     );
 }
 
+const TROOP_STACK_OFFSETS = [
+    { x: 0,   y: 0 },
+    { x: -11, y: 1 },
+    { x: 11,  y: -1 },
+    { x: -6,  y: -3 },
+    { x: 6,   y: 3 }
+];
+
+function troopStackOffset(troop){
+    const id = troop?.id || "";
+
+    const counterMatch =
+        id.match(/_(\d+)$/);
+
+    let seed;
+
+    if(counterMatch){
+        seed = Number(counterMatch[1]);
+    }
+    else{
+        seed = 0;
+
+        for(let i = 0; i < id.length; i++){
+            seed =
+                (
+                    seed * 31 +
+                    id.charCodeAt(i)
+                ) >>> 0;
+        }
+    }
+
+    return TROOP_STACK_OFFSETS[
+        seed % TROOP_STACK_OFFSETS.length
+    ];
+}
+
 function placedTroop(troop, self){
-    const team = troop.owner === self ? "you" : "enemy";
-    const { tx, ty, sc } = placeTroop(troop.lane, troop.x, self);
-    const hp = troop.hpRatio != null ? troopHpBar(troop.hpRatio) : "";
-    return `<g transform="translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})">${rigMarkup(troop.cardId, team, troop.state)}${hp}</g>`;
+    const team =
+        troop.owner === self
+            ? "you"
+            : "enemy";
+
+    const { tx, ty, sc } =
+        placeTroop(
+            troop.lane,
+            troop.x,
+            self
+        );
+
+    const offset =
+        troopStackOffset(troop);
+
+    const hp =
+        troop.hpRatio != null
+            ? troopHpBar(troop.hpRatio)
+            : "";
+
+    return `
+        <g
+            transform="
+                translate(
+                    ${(tx + offset.x).toFixed(1)},
+                    ${(ty + offset.y).toFixed(1)}
+                )
+                scale(${sc.toFixed(3)})
+            "
+        >
+            ${rigMarkup(
+                troop.cardId,
+                team,
+                troop.state
+            )}
+
+            ${hp}
+        </g>
+    `;
 }
 
 // STATIC full redraw: selection and ended (troops don't move, so this is fine)
@@ -1039,8 +1110,26 @@ const frontLayer =
 
 if(el.parentNode !== targetLayer)
     targetLayer.appendChild(el);
-        const { tx, ty, sc } = placeTroop(tr.lane, x, self);
-        el.setAttribute("transform", `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${sc.toFixed(3)})`);
+        const { tx, ty, sc } =
+    placeTroop(
+        tr.lane,
+        x,
+        self
+    );
+
+const offset =
+    troopStackOffset(tr);
+
+el.setAttribute(
+    "transform",
+    `
+        translate(
+            ${(tx + offset.x).toFixed(1)},
+            ${(ty + offset.y).toFixed(1)}
+        )
+        scale(${sc.toFixed(3)})
+    `
+);
         updateHp(el, tr.hpRatio);
     });
 
